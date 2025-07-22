@@ -9,7 +9,7 @@ erraform {
 provider "azurerm" {
   features {}
 }
-
+#
 resource "azurerm_resource_group" "test" {
   name     = "rg-nic-test"
   location = "East US"
