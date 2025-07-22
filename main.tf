@@ -54,6 +54,11 @@ resource "azurerm_network_interface" "nic" {
     subnet_id                     = azurerm_subnet.subnet.id
     private_ip_address_allocation = "Dynamic"
   }
+  lifecycle {
+    ignore_changes = [
+      ip_configuration[0].public_ip_address_id
+    ]
+  }
 }
 resource "azurerm_resource_group_template_deployment" "patch_nic" {
   for_each = {
