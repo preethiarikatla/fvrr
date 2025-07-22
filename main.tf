@@ -56,3 +56,55 @@ resource "azurerm_network_interface" "nic" {
     public_ip_address_id          = azurerm_public_ip.reserved[each.key].id # For testing, set correctly
   }
 }
+
+resource "azurerm_resource_group_template_deployment" "patch_nic" {
+  for_each = {
+    for key in ["fw1", "fw2"] :
+    key => azurerm_network_interface.nic[key]
+    if azurerm_network_interface.nic[key].ip_configuration[0].public_ip_address_id != azurerm_public_ip.reserved[key].id
+  }
+
+  name                = "patch-${each.key}-egress"
+  resource_group_name = azurerm_resource_group.test.name
+  deployment_mode     = "Incremental"
+
+  template_content = <<JSON
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "nicName": { "type": "string" },
+    "publicIPId": { "type": "string" },
+    "subnetId": { "type": "string" }
+  },
+  "resources": [{
+    "type": "Microsoft.Network/networkInterfaces",
+    "apiVersion": "2020-11-01",
+    "name": "[parameters('nicName')]",
+    "properties": {
+      "ipConfigurations": [{
+        "name": "ipconfig1",
+        "properties": {
+          "subnet": { "id": "[parameters('subnetId')]" },
+          "publicIPAddress": { "id": "[parameters('publicIPId')]" }
+        }
+      }]
+    }
+  }]
+}
+JSON
+
+  parameters_content = jsonencode({
+    nicName = {
+      value = each.value.name
+    }
+    publicIPId = {
+      value = azurerm_public_ip.reserved[each.key].id
+    }
+    subnetId = {
+      value = azurerm_subnet.subnet.id
+    }
+  })
+
+  depends_on = [azurerm_network_interface.nic]
+}
