@@ -67,7 +67,7 @@ resource "azurerm_resource_group_template_deployment" "patch_nic" {
     if azurerm_network_interface.nic[key].ip_configuration[0].public_ip_address_id != azurerm_public_ip.reserved[key].id
   }
 
-  name                = "patch-${each.key}-egress"
+  name                = "patch-${each.key}-egresss"
   resource_group_name = azurerm_resource_group.test.name
   deployment_mode     = "Incremental"
 
