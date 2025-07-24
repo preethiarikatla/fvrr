@@ -113,6 +113,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
   size                            = "Standard_B1s"
   network_interface_ids           = [azurerm_network_interface.dummy_nic.id]
   #network_interface_ids           = [azurerm_network_interface.nic.id]
+  depends_on = [azurerm_network_interface.dummy_nic]
   admin_username                  = "azureuser"
   disable_password_authentication = true
   # 👇 Required dummy key – no login needed
@@ -146,6 +147,7 @@ resource "azurerm_linux_virtual_machine" "vm_new" {
   resource_group_name             = azurerm_resource_group.rg.name
   size                            = "Standard_B1s"
   network_interface_ids           = [azurerm_network_interface.nic.id]  # original NIC
+  depends_on = [azurerm_linux_virtual_machine.vm] 
   admin_username                  = "azureuser"
   disable_password_authentication = true
 
