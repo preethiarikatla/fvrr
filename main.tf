@@ -38,6 +38,9 @@ resource "azurerm_public_ip" "reserved" {
   resource_group_name = azurerm_resource_group.test.name
   allocation_method   = "Static"
   sku                 = "Basic"
+  lifecycle {
+    ignore_changes = [sku]
+  }
 }
 
 
