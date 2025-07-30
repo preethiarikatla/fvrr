@@ -112,11 +112,11 @@ resource "azurerm_lb_rule" "rule" {
 }
 
 # BACKEND POOL ASSOCIATION
-resource "azurerm_network_interface_backend_address_pool_association" "nic_to_backend" {
-  network_interface_id    = azurerm_network_interface.nic.id
-  ip_configuration_name   = var.ipconfig
-  backend_address_pool_id = azurerm_lb_backend_address_pool.backend_pool.id
-}
+#resource "azurerm_network_interface_backend_address_pool_association" "nic_to_backend" {
+ # network_interface_id    = azurerm_network_interface.nic.id
+ #ip_configuration_name   = var.ipconfig
+ # backend_address_pool_id = azurerm_lb_backend_address_pool.backend_pool.id
+#}
 
 # VM (Linux Ubuntu) with SSH key only
 resource "azurerm_linux_virtual_machine" "vm" {
