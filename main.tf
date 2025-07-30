@@ -86,13 +86,11 @@ resource "azurerm_lb" "lb" {
 resource "azurerm_lb_backend_address_pool" "backend_pool" {
   name                 = "${var.lb_name}-bepool"
   loadbalancer_id      = azurerm_lb.lb.id
-  resource_group_name  = var.resource_group_name
 }
 
 # HEALTH PROBE
 resource "azurerm_lb_probe" "probe" {
   name                = "${var.lb_name}-tcp-probe"
-  resource_group_name = var.resource_group_name
   loadbalancer_id     = azurerm_lb.lb.id
   protocol            = "Tcp"
   port                = 80
