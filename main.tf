@@ -31,7 +31,7 @@ resource "azurerm_subnet" "subnet" {
   address_prefixes     = ["10.10.1.0/24"]
 }
 
--- # ----------- Create Public IPs for Management and Egress -----------
+-- ----------- Create Public IPs for Management and Egress -----------
 -- resource "azurerm_public_ip" "mgmt" {
 --   name                = "fw-mgmt-pip"
 --   location            = azurerm_resource_group.test.location
