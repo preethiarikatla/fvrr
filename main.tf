@@ -38,13 +38,6 @@ resource "azurerm_public_ip" "mgmt" {
   sku                 = "Standard"
 }
 
-resource "azurerm_public_ip" "egress" {
-  name                = "fw-egress-pip"
-  location            = azurerm_resource_group.test.location
-  resource_group_name = azurerm_resource_group.test.name
-  allocation_method   = "Static"
-  sku                 = "Standard"
-}
 
 resource "azurerm_network_interface" "mgmt" {
   name                = "fw-mgmt-nic"
@@ -68,7 +61,6 @@ resource "azurerm_network_interface" "egress" {
     name                          = "ipconfig1"
     subnet_id                     = azurerm_subnet.subnet.id
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.egress.id
   }
 }
 
