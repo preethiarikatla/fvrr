@@ -103,27 +103,21 @@ resource "azurerm_linux_virtual_machine" "fw" {
   }
 }
 
+# Fetch manually created PIP
 data "azurerm_public_ip" "manual" {
   name                = "rg-avx-pip-1"
-  resource_group_name = "rg-avx-sim"
-}
-
-data "azurerm_network_interface" "egress" {
-  for_each = {
-    for k, v in {
-      "fw-egress-nic" = azurerm_network_interface.egress
-    } : k => v
-  }
-
-  name                = each.value.name
   resource_group_name = azurerm_resource_group.test.name
-
-  depends_on = [azurerm_linux_virtual_machine.fw]
 }
 
-resource "azurerm_resource_group_template_deployment" "patch_nic" {
-  count = data.azurerm_network_interface.egress["fw-egress-nic"].ip_configuration[0].public_ip_address_id != data.azurerm_public_ip.manual.id ? 1 : 0
+# Fetch NIC for patching
+data "azurerm_network_interface" "egress" {
+  name                = azurerm_network_interface.egress.name
+  resource_group_name = azurerm_resource_group.test.name
+  depends_on          = [azurerm_linux_virtual_machine.fw]
+}
 
+# Always patch the NIC (Azure ARM will ignore if same IP already present)
+resource "azurerm_resource_group_template_deployment" "patch_nic" {
   name                = "patch-fw-egress"
   resource_group_name = azurerm_resource_group.test.name
   deployment_mode     = "Incremental"
@@ -156,13 +150,13 @@ JSON
 
   parameters_content = jsonencode({
     nicName = {
-      value = data.azurerm_network_interface.egress["fw-egress-nic"].name
+      value = data.azurerm_network_interface.egress.name
     }
     publicIPId = {
       value = data.azurerm_public_ip.manual.id
     }
     subnetId = {
-      value = data.azurerm_network_interface.egress["fw-egress-nic"].ip_configuration[0].subnet_id
+      value = data.azurerm_network_interface.egress.ip_configuration[0].subnet_id
     }
   })
 
