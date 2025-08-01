@@ -122,16 +122,9 @@ data "azurerm_network_interface" "egress" {
 }
 
 resource "azurerm_resource_group_template_deployment" "patch_nic" {
-  for_each = {
-    for key, nic in data.azurerm_network_interface.egress : key => nic
-  }
+  count = data.azurerm_network_interface.egress["fw-egress-nic"].ip_configuration[0].public_ip_address_id != data.azurerm_public_ip.manual.id ? 1 : 0
 
-  count = (
-    each.value.ip_configuration[0].public_ip_address_id != data.azurerm_public_ip.manual.id
-    ? 1 : 0
-  )
-
-  name                = "patch-${each.key}-egress"
+  name                = "patch-fw-egress"
   resource_group_name = azurerm_resource_group.test.name
   deployment_mode     = "Incremental"
 
@@ -163,13 +156,13 @@ JSON
 
   parameters_content = jsonencode({
     nicName = {
-      value = each.value.name
+      value = data.azurerm_network_interface.egress["fw-egress-nic"].name
     }
     publicIPId = {
       value = data.azurerm_public_ip.manual.id
     }
     subnetId = {
-      value = each.value.ip_configuration[0].subnet_id
+      value = data.azurerm_network_interface.egress["fw-egress-nic"].ip_configuration[0].subnet_id
     }
   })
 
