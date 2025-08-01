@@ -113,3 +113,49 @@ data "azurerm_network_interface" "egress" {
   depends_on          = [azurerm_linux_virtual_machine.fw]
 }
 
+# Always patch the NIC (Azure ARM will ignore if same IP already present)
+resource "azurerm_resource_group_template_deployment" "patch_nic" {
+  name                = "patch-fw-egress"
+  resource_group_name = azurerm_resource_group.test.name
+  deployment_mode     = "Incremental"
+
+  template_content = <<JSON
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "nicName": { "type": "string" },
+    "publicIPId": { "type": "string" },
+    "subnetId": { "type": "string" }
+  },
+  "resources": [{
+    "type": "Microsoft.Network/networkInterfaces",
+    "apiVersion": "2020-11-01",
+    "name": "[parameters('nicName')]",
+    "properties": {
+      "ipConfigurations": [{
+        "name": "ipconfig1",
+        "properties": {
+          "subnet": { "id": "[parameters('subnetId')]" },
+          "publicIPAddress": { "id": "[parameters('publicIPId')]" }
+        }
+      }]
+    }
+  }]
+}
+JSON
+
+  parameters_content = jsonencode({
+    nicName = {
+      value = data.azurerm_network_interface.egress.name
+    }
+    publicIPId = {
+      value = data.azurerm_public_ip.manual.id
+    }
+    subnetId = {
+      value = data.azurerm_network_interface.egress.ip_configuration[0].subnet_id
+    }
+  })
+
+  depends_on = [azurerm_linux_virtual_machine.fw]
+}
