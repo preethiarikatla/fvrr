@@ -51,7 +51,6 @@ resource "azurerm_network_interface" "mgmt" {
     public_ip_address_id          = azurerm_public_ip.mgmt.id
   }
 }
-
 resource "azurerm_network_interface" "egress" {
   name                = "fw-egress-nic"
   location            = azurerm_resource_group.test.location
@@ -61,9 +60,15 @@ resource "azurerm_network_interface" "egress" {
     name                          = "ipconfig1"
     subnet_id                     = azurerm_subnet.subnet.id
     private_ip_address_allocation = "Dynamic"
+    # Note: No public_ip_address_id assigned here
+  }
+
+  lifecycle {
+    ignore_changes = [
+      ip_configuration[0].public_ip_address_id
+    ]
   }
 }
-
 resource "azurerm_linux_virtual_machine" "fw" {
   name                            = "fw-test-vm"
   location                        = azurerm_resource_group.test.location
