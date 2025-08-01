@@ -2,131 +2,88 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~>4.19.0"
+      version = ">=2.50.0"
     }
   }
 }
+
 provider "azurerm" {
   features {}
 }
 
-variable "location" {
-  default = "eastus2"
+# ----------- Terraform Created Resources -----------
+resource "azurerm_resource_group" "test" {
+  name     = "rg-avx-sim"
+  location = "East US"
 }
 
-variable "resource_group_name" {
-  default = "demo-rg"
-}
-
-variable "lb_name" {
-  default = "demo-lb"
-}
-
-variable "ipconfig" {
-  default = "ipconfig1"
-}
-
-# RESOURCE GROUP
-resource "azurerm_resource_group" "rg" {
-  name     = var.resource_group_name
-  location = var.location
-}
-
-# VNET + SUBNET
 resource "azurerm_virtual_network" "vnet" {
-  name                = "demo-vnet"
-  address_space       = ["10.0.0.0/16"]
-  location            = var.location
-  resource_group_name = var.resource_group_name
+  name                = "vnet-avx-sim"
+  address_space       = ["10.10.0.0/16"]
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
 }
 
 resource "azurerm_subnet" "subnet" {
-  name                 = "demo-subnet"
-  resource_group_name  = var.resource_group_name
+  name                 = "subnet-fw"
+  resource_group_name  = azurerm_resource_group.test.name
   virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["10.0.1.0/24"]
+  address_prefixes     = ["10.10.1.0/24"]
 }
 
-# NIC
-resource "azurerm_network_interface" "nic" {
-  name                = "demo-nic"
-  location            = var.location
-  resource_group_name = var.resource_group_name
-
-  ip_configuration {
-    name                          = var.ipconfig
-    subnet_id                     = azurerm_subnet.subnet.id
-    private_ip_address_allocation = "Dynamic"
-  }
-}
-
-# PUBLIC IP for LB
-resource "azurerm_public_ip" "pip" {
-  name                = "${var.lb_name}-pip"
-  location            = var.location
-  resource_group_name = var.resource_group_name
+# ----------- Create Public IPs for Management and Egress -----------
+resource "azurerm_public_ip" "mgmt" {
+  name                = "fw-mgmt-pip"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
   allocation_method   = "Static"
   sku                 = "Standard"
 }
 
-# LOAD BALANCER
-resource "azurerm_lb" "lb" {
-  name                = var.lb_name
-  location            = var.location
-  resource_group_name = var.resource_group_name
+resource "azurerm_public_ip" "egress" {
+  name                = "fw-egress-pip"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  allocation_method   = "Static"
   sku                 = "Standard"
+}
 
-  frontend_ip_configuration {
-    name                 = "${var.lb_name}-frontend"
-    public_ip_address_id = azurerm_public_ip.pip.id
+resource "azurerm_network_interface" "mgmt" {
+  name                = "fw-mgmt-nic"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+
+  ip_configuration {
+    name                          = "ipconfig1"
+    subnet_id                     = azurerm_subnet.subnet.id
+    private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = azurerm_public_ip.mgmt.id
   }
 }
 
-# BACKEND POOL
-resource "azurerm_lb_backend_address_pool" "backend_pool" {
-  name                 = "${var.lb_name}-bepool"
-  loadbalancer_id      = azurerm_lb.lb.id
+resource "azurerm_network_interface" "egress" {
+  name                = "fw-egress-nic"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+
+  ip_configuration {
+    name                          = "ipconfig1"
+    subnet_id                     = azurerm_subnet.subnet.id
+    private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = azurerm_public_ip.egress.id
+  }
 }
 
-# HEALTH PROBE
-resource "azurerm_lb_probe" "probe" {
-  name                = "${var.lb_name}-tcp-probe"
-  loadbalancer_id     = azurerm_lb.lb.id
-  protocol            = "Tcp"
-  port                = 80
-  interval_in_seconds = 5
-  number_of_probes    = 2
-}
-
-resource "azurerm_lb_rule" "rule" {
-  name                           = "${var.lb_name}-http"
-  loadbalancer_id                = azurerm_lb.lb.id
-  protocol                       = "Tcp"
-  frontend_port                  = 80
-  backend_port                   = 80
-  frontend_ip_configuration_name = "${var.lb_name}-frontend"
-  backend_address_pool_ids       = [azurerm_lb_backend_address_pool.backend_pool.id]
-  probe_id                       = azurerm_lb_probe.probe.id
-  enable_tcp_reset               = true
-  disable_outbound_snat          = false
-}
-
-# BACKEND POOL ASSOCIATION
- resource "azurerm_network_interface_backend_address_pool_association" "nic_to_backend" {
-  network_interface_id    = azurerm_network_interface.nic.id
-  ip_configuration_name   = var.ipconfig
-  backend_address_pool_id = azurerm_lb_backend_address_pool.backend_pool.id
-}
-
-# VM (Linux Ubuntu) with SSH key only
-resource "azurerm_linux_virtual_machine" "vm" {
-  name                = "demo-vm"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  size                = "Standard_B1s"
-  admin_username      = "azureuser"
-  network_interface_ids = [azurerm_network_interface.nic.id]
-
+resource "azurerm_linux_virtual_machine" "fw" {
+  name                            = "fw-test-vm"
+  location                        = azurerm_resource_group.test.location
+  resource_group_name             = azurerm_resource_group.test.name
+  size                            = "Standard_B1s"
+  network_interface_ids           = [
+    azurerm_network_interface.mgmt.id,
+    azurerm_network_interface.egress.id
+  ]
+  admin_username                  = "azureuser"
   disable_password_authentication = true
 
   admin_ssh_key {
@@ -135,24 +92,17 @@ resource "azurerm_linux_virtual_machine" "vm" {
   }
 
   os_disk {
+    name                 = "fw-vm-osdisk"
     caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
-    name                 = "osdisk"
   }
 
   source_image_reference {
     publisher = "Canonical"
-    offer     = "0001-com-ubuntu-server-jammy"
-    sku       = "22_04-lts"
+    offer     = "UbuntuServer"
+    sku       = "18.04-LTS"
     version   = "latest"
   }
 }
 
-# OUTPUTS
-output "vm_private_ip" {
-  value = azurerm_network_interface.nic.private_ip_address
-}
 
-output "lb_public_ip" {
-  value = azurerm_public_ip.pip.ip_address
-}
