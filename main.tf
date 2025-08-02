@@ -174,7 +174,7 @@ resource "azurerm_resource_group_template_deployment" "patch_nic1" {
               "name" : "[parameters('ipConfigName')]",
               "properties" : {
                 "primary" : true,
-                "privateIPAddress" : "[parameters('privateIPAddress')]"
+                "privateIPAddress" : "[parameters('privateIPAddress')]",
                 "privateIPAllocationMethod" : "Dynamic",
                 "publicIPAddress" : {
                   "id" : "[parameters('publicIPId')]"
