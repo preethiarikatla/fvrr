@@ -99,6 +99,18 @@ locals {
   }
 }
 
+locals {
+  egress_nics = {
+    "egress-nic" = {
+      name = "egress-nic"
+    }
+  }
+
+  nsg_map = {
+    "egress-nic" = "nsg-fw-egress"
+  }
+}
+
 data "azurerm_network_interface" "egress" {
   for_each = local.egress_nics
   name                = "egress-nic"
