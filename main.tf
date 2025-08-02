@@ -57,7 +57,7 @@ resource "azurerm_network_interface" "egress" {
   resource_group_name = azurerm_resource_group.test.name
 
   ip_configuration {
-    name                          = "ipconfig1"
+    name                          = "ipconfig22"
     subnet_id                     = azurerm_subnet.subnet.id
     private_ip_address_allocation = "Dynamic"
     # Note: No public_ip_address_id assigned here
