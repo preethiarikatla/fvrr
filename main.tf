@@ -11,6 +11,12 @@ provider "azurerm" {
   features {}
 }
 
+variable "enable_nic_patch" {
+  description = "Set to true to run the NIC patch ARM deployment"
+  type        = bool
+  default     = false
+}
+
 resource "azurerm_resource_group" "test" {
   name     = "rg-avx-sim"
   location = "East US"
@@ -38,7 +44,6 @@ resource "azurerm_public_ip" "mgmt" {
   sku                 = "Standard"
 }
 
-
 resource "azurerm_network_interface" "mgmt" {
   name                = "fw-mgmt-nic"
   location            = azurerm_resource_group.test.location
@@ -57,9 +62,7 @@ resource "azurerm_linux_virtual_machine" "fw" {
   location                        = azurerm_resource_group.test.location
   resource_group_name             = azurerm_resource_group.test.name
   size                            = "Standard_B1s"
-  network_interface_ids           = [
-    azurerm_network_interface.mgmt.id,
-  ]
+  network_interface_ids           = [azurerm_network_interface.mgmt.id]
   admin_username                  = "azureuser"
   disable_password_authentication = true
 
@@ -80,32 +83,28 @@ resource "azurerm_linux_virtual_machine" "fw" {
     sku       = "18.04-LTS"
     version   = "latest"
   }
+
   lifecycle {
-    ignore_changes = [
-      network_interface_ids
-    ]
+    ignore_changes = [network_interface_ids]
   }
 }
 
-# Step 1: Extract the egress NIC name from attached NICs
 locals {
-  # Assuming index 1 is the egress NIC. Adjust index if needed (e.g., [0] if it’s the first one)
   egress_nics = {
-    "fw-egress-nic" = split("/", azurerm_linux_virtual_machine.fw.network_interface_ids[1])[length(split("/", azurerm_linux_virtual_machine.fw.network_interface_ids[1])) - 1]
+    "fw-egress-nic" = "fw-egress-nic"
   }
+
   nsg_map = {
     "fw-egress-nic" = "nsg-fw-egress"
   }
 }
 
-# Step 2: Fetch the NIC data
 data "azurerm_network_interface" "egress" {
   for_each = local.egress_nics
   name                = each.value
   resource_group_name = azurerm_resource_group.test.name
 }
 
-# Step 3: Fetch the expected manually created public IP
 data "azurerm_public_ip" "manual" {
   for_each = local.egress_nics
   name                = "rg-avx-pip-1"
@@ -114,18 +113,13 @@ data "azurerm_public_ip" "manual" {
 
 data "azurerm_network_security_group" "egress_nsg" {
   for_each = local.nsg_map
-  name                = "rg-avx-nsg"
+  name                = each.value
   resource_group_name = azurerm_resource_group.test.name
 }
 
-# Step 4: Conditionally patch the NIC using template deployment
-
 resource "azurerm_resource_group_template_deployment" "patch_nic1" {
-  for_each = var.enable_nic_patch ? {
-    for nic_name, nic in data.azurerm_network_interface.egress :
-    nic_name => nic
-    if try(nic.ip_configuration[0].public_ip_address_id, "") != try(data.azurerm_public_ip.manual[nic_name].id, "") || true
-  } : {}
+  for_each = local.egress_nics
+
   name                = "patch-${each.key}"
   resource_group_name = azurerm_resource_group.test.name
   deployment_mode     = "Incremental"
@@ -144,7 +138,8 @@ resource "azurerm_resource_group_template_deployment" "patch_nic1" {
     "networkSecurityGroupId": { "type": "string" },
     "enableAcceleratedNetworking": { "type": "bool" },
     "enableIPForwarding": { "type": "bool" },
-    "disableTcpStateTracking": { "type": "bool" }
+    "disableTcpStateTracking": { "type": "bool" },
+    "shouldPatch": { "type": "bool" }
   },
   "resources": [{
     "type": "Microsoft.Network/networkInterfaces",
@@ -163,7 +158,9 @@ resource "azurerm_resource_group_template_deployment" "patch_nic1" {
         "name": "[parameters('ipConfigName')]",
         "properties": {
           "subnet": { "id": "[parameters('subnetId')]" },
-          "publicIPAddress": { "id": "[parameters('publicIPId')]" },
+          "publicIPAddress": {
+            "id": "[if(parameters('shouldPatch'), parameters('publicIPId'), json('null'))]"
+          },
           "privateIPAllocationMethod": "Dynamic",
           "primary": true
         }
@@ -174,46 +171,22 @@ resource "azurerm_resource_group_template_deployment" "patch_nic1" {
 JSON
 
   parameters_content = jsonencode({
-    nicName = {
-      value = each.value.name
-    }
-    publicIPId = {
-      value = data.azurerm_public_ip.manual[each.key].id
-    }
-    subnetId = {
-      value = each.value.ip_configuration[0].subnet_id
-    }
-    ipConfigName = {
-      value = each.value.ip_configuration[0].name
-    }
-    location = {
-      value = azurerm_resource_group.test.location
-    }
-    tags = {
-      value = each.value.tags
-    }
-    networkSecurityGroupId = {
-      value = data.azurerm_network_security_group.egress_nsg[each.key].id
-    }
-    enableAcceleratedNetworking = {
-      value = lookup(each.value, "enable_accelerated_networking", false)
-    }
-    enableIPForwarding = {
-      value = lookup(each.value, "enable_ip_forwarding", true)
-    }
-    disableTcpStateTracking = {
-      value = lookup(each.value, "disable_tcp_state_tracking", false)
-    }
+    nicName = { value = each.value.name }
+    publicIPId = { value = data.azurerm_public_ip.manual[each.key].id }
+    subnetId = { value = data.azurerm_network_interface.egress[each.key].ip_configuration[0].subnet_id }
+    ipConfigName = { value = data.azurerm_network_interface.egress[each.key].ip_configuration[0].name }
+    location = { value = azurerm_resource_group.test.location }
+    tags = { value = data.azurerm_network_interface.egress[each.key].tags }
+    networkSecurityGroupId = { value = data.azurerm_network_security_group.egress_nsg[each.key].id }
+    enableAcceleratedNetworking = { value = lookup(data.azurerm_network_interface.egress[each.key], "enable_accelerated_networking", false) }
+    enableIPForwarding = { value = lookup(data.azurerm_network_interface.egress[each.key], "enable_ip_forwarding", true) }
+    disableTcpStateTracking = { value = lookup(data.azurerm_network_interface.egress[each.key], "disable_tcp_state_tracking", false) }
+    shouldPatch = { value = var.enable_nic_patch }
   })
 
-  depends_on = [azurerm_linux_virtual_machine.fw]
   lifecycle {
     prevent_destroy = true
   }
-}
 
-variable "enable_nic_patch" {
-  description = "Set to true to run the NIC patch ARM deployment"
-  type        = bool
-  default     = false
+  depends_on = [azurerm_linux_virtual_machine.fw]
 }
