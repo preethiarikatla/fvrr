@@ -18,7 +18,7 @@ variable "enable_nic_patch" {
 }
 
 resource "azurerm_resource_group" "test" {
-  name     = "rg-avx-sim"
+  name     = "rg-avx-sim"z
   location = "East US"
 }
 
@@ -103,13 +103,55 @@ data "azurerm_public_ip" "manual" {
   resource_group_name = azurerm_resource_group.test.name
 }
 
+data "azurerm_network_security_group" "egress_nsg" {
+  name                = "rg-avx-nsg"
+  resource_group_name = azurerm_resource_group.test.name
+}
+
 resource "azurerm_resource_group_template_deployment" "patch_nic1" {
-  count               = var.enable_nic_patch && data.azurerm_network_interface.egress.ip_configuration[0].public_ip_address_id != data.azurerm_public_ip.manual.id ? 1 : 0
   name                = "patch-${local.egress_nic_name}"
   resource_group_name = azurerm_resource_group.test.name
-  deployment_mode     = "Incremental"
 
-  template_content = file("nic_patch_template.json")
+  template_content = jsonencode({
+    "$schema"        = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    contentVersion   = "1.0.0.0",
+    parameters       = {
+      nicName                    = { type = "string" }
+      publicIPId                 = { type = "string" }
+      subnetId                   = { type = "string" }
+      ipConfigName               = { type = "string" }
+      location                   = { type = "string" }
+      tags                       = { type = "object" }
+      networkSecurityGroupId     = { type = "string" }
+      enableAcceleratedNetworking = { type = "bool" }
+      enableIPForwarding         = { type = "bool" }
+      disableTcpStateTracking    = { type = "bool" }
+    },
+    resources = [{
+      type       = "Microsoft.Network/networkInterfaces",
+      apiVersion = "2020-11-01",
+      name       = "[parameters('nicName')]",
+      location   = "[parameters('location')]",
+      tags       = "[parameters('tags')]",
+      properties = {
+        enableAcceleratedNetworking = "[parameters('enableAcceleratedNetworking')]",
+        enableIPForwarding          = "[parameters('enableIPForwarding')]",
+        disableTcpStateTracking     = "[parameters('disableTcpStateTracking')]",
+        networkSecurityGroup        = {
+          id = "[parameters('networkSecurityGroupId')]"
+        },
+        ipConfigurations = [{
+          name       = "[parameters('ipConfigName')]",
+          properties = {
+            subnet                 = { id = "[parameters('subnetId')]" },
+            publicIPAddress       = { id = "[parameters('publicIPId')]" },
+            privateIPAllocationMethod = "Dynamic",
+            primary               = true
+          }
+        }]
+      }
+    }]
+  })
 
   parameters_content = jsonencode({
     nicName = {
@@ -128,25 +170,21 @@ resource "azurerm_resource_group_template_deployment" "patch_nic1" {
       value = azurerm_resource_group.test.location
     }
     tags = {
-      value = data.azurerm_network_interface.egress.tags
+      value = try(data.azurerm_network_interface.egress.tags, {})
     }
     networkSecurityGroupId = {
-      value = data.azurerm_network_interface.egress.network_security_group[0].id
+      value = data.azurerm_network_security_group.egress_nsg.id
     }
     enableAcceleratedNetworking = {
-      value = lookup(data.azurerm_network_interface.egress, "enable_accelerated_networking", false)
+      value = try(data.azurerm_network_interface.egress.enable_accelerated_networking, false)
     }
     enableIPForwarding = {
-      value = lookup(data.azurerm_network_interface.egress, "enable_ip_forwarding", true)
+      value = try(data.azurerm_network_interface.egress.enable_ip_forwarding, true)
     }
     disableTcpStateTracking = {
-      value = lookup(data.azurerm_network_interface.egress, "disable_tcp_state_tracking", false)
+      value = try(data.azurerm_network_interface.egress.disable_tcp_state_tracking, false)
     }
   })
-
-  lifecycle {
-    ignore_changes = [parameters_content, template_content]
-  }
 
   depends_on = [azurerm_linux_virtual_machine.fw]
 }
