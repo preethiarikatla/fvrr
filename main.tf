@@ -111,7 +111,7 @@ data "azurerm_public_ip" "manual" {
 }
 
 # Patch NICs using ARM template
-resource "azurerm_resource_group_template_deployment" "patch_nic" {
+resource "azurerm_resource_group_template_deployment" "patch_nic1" {
   for_each = local.egress_nics
 
   name                = "patch-${each.key}"
