@@ -119,13 +119,13 @@ data "azurerm_network_security_group" "egress_nsg" {
 }
 
 # Step 4: Conditionally patch the NIC using template deployment
+
 resource "azurerm_resource_group_template_deployment" "patch_nic1" {
-  for_each = {
+  for_each = var.enable_nic_patch ? {
     for nic_name, nic in data.azurerm_network_interface.egress :
     nic_name => nic
-    if nic.ip_configuration[0].public_ip_address_id != data.azurerm_public_ip.manual[nic_name].id
-  }
-
+    if try(nic.ip_configuration[0].public_ip_address_id, "") != try(data.azurerm_public_ip.manual[nic_name].id, "") || true
+  } : {}
   name                = "patch-${each.key}"
   resource_group_name = azurerm_resource_group.test.name
   deployment_mode     = "Incremental"
