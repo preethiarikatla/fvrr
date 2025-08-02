@@ -89,41 +89,45 @@ resource "azurerm_linux_virtual_machine" "fw" {
   }
 }
 
+# Define multiple NICs to patch
 locals {
-  egress_nic_name = "egress-nic"
+  egress_nics = {
+    "fw-egress-nic"  = "egress-nic-fw"
+    "fw2-egress-nic" = "egress-nic-fw2"
+  }
 }
 
+# Fetch each NIC
 data "azurerm_network_interface" "egress" {
-  name                = local.egress_nic_name
+  for_each            = local.egress_nics
+  name                = each.value
   resource_group_name = azurerm_resource_group.test.name
 }
 
-data "azurerm_public_ip" "manual" {
+# Fetch the shared public IP (same for all NICs)
+data "azurerm_public_ip" "shared" {
   name                = "rg-avx-pip-1"
   resource_group_name = azurerm_resource_group.test.name
 }
 
-data "azurerm_network_security_group" "egress" {
-  name                = "rg-avx-nsg"
-  resource_group_name = azurerm_resource_group.test.name
-}
+# Patch NICs using ARM template
+resource "azurerm_resource_group_template_deployment" "patch_nic" {
+  for_each = local.egress_nics
 
-resource "azurerm_resource_group_template_deployment" "patch_egress_nic" {
-  name                = "patch-fw-egress-nic"
+  name                = "patch-${each.key}"
   resource_group_name = azurerm_resource_group.test.name
-
-  deployment_mode = "Incremental"
+  deployment_mode     = "Incremental"
 
   template_content = jsonencode({
     "$schema"        = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
     contentVersion   = "1.0.0.0"
     parameters       = {
-      nicName                = { type = "String" }
-      publicIPId             = { type = "String" }
-      subnetId               = { type = "String" }
-      ipConfigName           = { type = "String" }
-      location               = { type = "String" }
-      tags                   = { type = "Object" }
+      nicName = { type = "String" }
+      publicIPId = { type = "String" }
+      subnetId = { type = "String" }
+      ipConfigName = { type = "String" }
+      location = { type = "String" }
+      tags = { type = "Object" }
       networkSecurityGroupId = { type = "String" }
     }
     resources = [
@@ -136,15 +140,15 @@ resource "azurerm_resource_group_template_deployment" "patch_egress_nic" {
         properties = {
           ipConfigurations = [
             {
-              name       = "[parameters('ipConfigName')]"
+              name = "[parameters('ipConfigName')]"
               properties = {
                 primary                    = true
                 privateIPAllocationMethod = "Dynamic"
-                publicIPAddress            = {
-                  id = "[parameters('publicIPId')]"
-                }
                 subnet = {
                   id = "[parameters('subnetId')]"
+                }
+                publicIPAddress = {
+                  id = "[parameters('publicIPId')]"
                 }
               }
             }
@@ -159,27 +163,25 @@ resource "azurerm_resource_group_template_deployment" "patch_egress_nic" {
 
   parameters_content = jsonencode({
     nicName = {
-      value = data.azurerm_network_interface.egress.name
+      value = data.azurerm_network_interface.egress[each.key].name
     }
     publicIPId = {
-      value = data.azurerm_public_ip.manual.id
+      value = data.azurerm_public_ip.shared.id
     }
     subnetId = {
-      value = data.azurerm_network_interface.egress.ip_configuration[0].subnet_id
+      value = data.azurerm_network_interface.egress[each.key].ip_configuration[0].subnet_id
     }
     ipConfigName = {
-      value = data.azurerm_network_interface.egress.ip_configuration[0].name
+      value = data.azurerm_network_interface.egress[each.key].ip_configuration[0].name
     }
     location = {
       value = azurerm_resource_group.test.location
     }
     tags = {
-      value = try(data.azurerm_network_interface.egress.tags, {})
+      value = try(data.azurerm_network_interface.egress[each.key].tags, {})
     }
     networkSecurityGroupId = {
-      value = data.azurerm_network_security_group.egress.id
+      value = try(data.azurerm_network_interface.egress[each.key].network_security_group_id, null)
     }
   })
-
-  depends_on = [azurerm_linux_virtual_machine.fw]
 }
