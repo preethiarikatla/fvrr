@@ -131,6 +131,7 @@ resource "azurerm_resource_group_template_deployment" "patch_nic" {
     "nicName": { "type": "string" },
     "publicIPId": { "type": "string" },
     "subnetId": { "type": "string" },
+    "ipConfigName": { "type": "string" },
     "location": { "type": "string" }
   },
   "resources": [{
@@ -140,7 +141,7 @@ resource "azurerm_resource_group_template_deployment" "patch_nic" {
     "location": "[parameters('location')]",
     "properties": {
       "ipConfigurations": [{
-        "name": "ipconfig2",
+        "name": "[parameters('ipConfigName')]",
         "properties": {
           "subnet": { "id": "[parameters('subnetId')]" },
           "publicIPAddress": { "id": "[parameters('publicIPId')]" }
@@ -161,6 +162,9 @@ JSON
     subnetId = {
       value = data.azurerm_network_interface.egress.ip_configuration[0].subnet_id
     }
+    ipConfigName = {
+       value = data.azurerm_network_interface.egress.ip_configuration[0].name
+    }
     location = {
       value = azurerm_resource_group.test.location
     }
@@ -168,5 +172,6 @@ JSON
 
   depends_on = [azurerm_linux_virtual_machine.fw]
 }
+
 
 
