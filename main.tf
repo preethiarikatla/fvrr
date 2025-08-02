@@ -93,7 +93,7 @@ resource "azurerm_linux_virtual_machine" "fw" {
 locals {
   egress_nics = {
     "fw-egress-nic"  = "egress-nic-fw"
-    "fw2-egress-nic" = "egress-nic-fw2"
+    #"fw2-egress-nic" = "egress-nic-fw2"
   }
 }
 
