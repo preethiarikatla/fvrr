@@ -91,10 +91,13 @@ resource "azurerm_linux_virtual_machine" "fw" {
 
 # Define multiple NICs to patch
 locals {
-  egress_nics = {
+  firewall_instances = {
     "fw-egress-nic"  = "egress-nic"
     #"fw2-egress-nic" = "egress-nic-fw2"
   }
+egress_nics = {
+ for name, fw in local.firewall_instances :
+ name => fw.egress_interface
 }
 
 # Fetch each NIC
@@ -109,6 +112,7 @@ data "azurerm_public_ip" "manual" {
   name                = "rg-avx-pip-1"
   resource_group_name = azurerm_resource_group.test.name
 }
+
 resource "azurerm_resource_group_template_deployment" "patch_nic1" {
   for_each = local.egress_nics
 
@@ -195,28 +199,28 @@ resource "azurerm_resource_group_template_deployment" "patch_nic1" {
 
   parameters_content = jsonencode({
     nicName = {
-      value = data.azurerm_network_interface.egress[each.key].name
+      value = each.value.name
     },
     publicIPId = {
       value = data.azurerm_public_ip.manual.id
     },
     egressIpId = {
-      value = data.azurerm_network_interface.egress[each.key].ip_configuration[0].public_ip_address_id
+      value = each.value.ip_configuration[0].public_ip_address_id
     },
     subnetId = {
-      value = data.azurerm_network_interface.egress[each.key].ip_configuration[0].subnet_id
+      value = each.value.ip_configuration[0].subnet_id
     },
     ipConfigName = {
-      value = data.azurerm_network_interface.egress[each.key].ip_configuration[0].name
+      value = each.value.ip_configuration[0].name
     },
     privateIPAddress = {
-      value = data.azurerm_network_interface.egress[each.key].ip_configuration[0].private_ip_address
+      value = each.value.ip_configuration[0].private_ip_address
     },
     location = {
       value = azurerm_resource_group.test.location
     },
     tags = {
-      value = try(data.azurerm_network_interface.egress[each.key].tags, {})
+      value = each.value.tags, {})
     },
     networkSecurityGroupId = {
       value = try(data.azurerm_network_interface.egress[each.key].network_security_group_id, null)
