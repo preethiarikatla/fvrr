@@ -93,6 +93,9 @@ locals {
   egress_nics = {
     "fw-egress-nic" = split("/", azurerm_linux_virtual_machine.fw.network_interface_ids[1])[length(split("/", azurerm_linux_virtual_machine.fw.network_interface_ids[1])) - 1]
   }
+  nsg_map = {
+    "fw-egress-nic" = "nsg-fw-egress"
+  }
 }
 
 # Step 2: Fetch the NIC data
@@ -106,6 +109,12 @@ data "azurerm_network_interface" "egress" {
 data "azurerm_public_ip" "manual" {
   for_each = local.egress_nics
   name                = "rg-avx-pip-1"
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+data "azurerm_network_security_group" "egress_nsg" {
+  for_each = local.nsg_map
+  name                = each.value
   resource_group_name = azurerm_resource_group.test.name
 }
 
@@ -184,7 +193,7 @@ JSON
       value = each.value.tags
     }
     networkSecurityGroupId = {
-      value = each.value.network_security_group[0].id
+      value = data.azurerm_network_security_group.egress_nsg[each.key].id
     }
     enableAcceleratedNetworking = {
       value = lookup(each.value, "enable_accelerated_networking", false)
