@@ -99,6 +99,7 @@ egress_nics = {
  for name, fw in local.firewall_instances :
  name => fw.egress_interface
 }
+}
 
 # Fetch each NIC
 data "azurerm_network_interface" "egress" {
