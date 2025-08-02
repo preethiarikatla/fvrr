@@ -89,38 +89,39 @@ resource "azurerm_linux_virtual_machine" "fw" {
   }
 }
 
-locals {
-  # Assuming index 1 is the egress NIC. Adjust index if needed (e.g., [0] if it’s the first one)
-  egress_nics = {
-    "fw-egress-nic" = split("/", azurerm_linux_virtual_machine.fw.network_interface_ids[1])[length(split("/", azurerm_linux_virtual_machine.fw.network_interface_ids[1])) - 1]
+# Fetch all NICs attached to the VM
+data "azurerm_network_interface" "attached_nics" {
+  for_each = {
+    for id in azurerm_linux_virtual_machine.fw.network_interface_ids :
+    split("/", id)[length(split("/", id)) - 1] => id
   }
-}
-
-data "azurerm_network_interface" "egress" {
-  for_each = local.egress_nics
-  name                = "egress-nic"
+  name                = each.key
   resource_group_name = azurerm_resource_group.test.name
 }
 
+# Manually created PIP to be validated against
 data "azurerm_public_ip" "manual" {
-  for_each = local.egress_nics
   name                = "rg-avx-pip-1"
   resource_group_name = azurerm_resource_group.test.name
 }
 
-data "azurerm_network_security_group" "egress_nsg" {
-  #for_each = var.enable_nic_patch ? local.egress_nics : {}
-  for_each = {
-    for nic_name, nic in data.azurerm_network_interface.egress :
+# Only patch if PIP doesn't match
+locals {
+  egress_patch_nics = {
+    for nic_name, nic in data.azurerm_network_interface.attached_nics :
     nic_name => nic
-    if nic.ip_configuration[0].public_ip_address_id != data.azurerm_public_ip.manual[nic_name].id
+    if nic_name == "fw-egress-nic" &&
+       nic.ip_configuration[0].public_ip_address_id != data.azurerm_public_ip.manual.id
   }
+}
+
+data "azurerm_network_security_group" "egress" {
   name                = "rg-avx-nsg"
   resource_group_name = azurerm_resource_group.test.name
 }
 
-resource "azurerm_resource_group_template_deployment" "patch_nic1" {
-  for_each = local.egress_nics
+resource "azurerm_resource_group_template_deployment" "patch_egress_nic" {
+  for_each = local.egress_patch_nics
 
   name                = "patch-${each.key}"
   resource_group_name = azurerm_resource_group.test.name
@@ -174,7 +175,7 @@ JSON
       value = each.value.name
     }
     publicIPId = {
-      value = data.azurerm_public_ip.manual[each.key].id
+      value = data.azurerm_public_ip.manual.id
     }
     subnetId = {
       value = each.value.ip_configuration[0].subnet_id
@@ -183,25 +184,24 @@ JSON
       value = each.value.ip_configuration[0].name
     }
     location = {
-      value = azurerm_resource_group.test.location
+      value = each.value.location
     }
     tags = {
       value = each.value.tags
     }
     networkSecurityGroupId = {
-      value = data.azurerm_network_security_group.egress_nsg[each.key].id
+      value = data.azurerm_network_security_group.egress.id
     }
     enableAcceleratedNetworking = {
-      value = lookup(each.value, "enable_accelerated_networking", false)
+      value = try(each.value.enable_accelerated_networking, false)
     }
     enableIPForwarding = {
-      value = lookup(each.value, "enable_ip_forwarding", true)
+      value = try(each.value.enable_ip_forwarding, true)
     }
     disableTcpStateTracking = {
-      value = lookup(each.value, "disable_tcp_state_tracking", false)
+      value = try(each.value.disable_tcp_state_tracking, false)
     }
   })
 
   depends_on = [azurerm_linux_virtual_machine.fw]
-
 }
