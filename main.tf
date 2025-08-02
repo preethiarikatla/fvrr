@@ -112,66 +112,6 @@ data "azurerm_network_interface" "egress" {
   depends_on          = [azurerm_linux_virtual_machine.fw]
 }
 
-resource "azurerm_resource_group_template_deployment" "patch_nic" {
-  for_each = {
-    for key in ["fw-egress-nic"] :
-    key => data.azurerm_network_interface.egress
-    if data.azurerm_network_interface.egress.ip_configuration[0].public_ip_address_id != data.azurerm_public_ip.manual.id
-  }
-
-  name                = "patch-${each.key}"
-  resource_group_name = azurerm_resource_group.test.name
-  deployment_mode     = "Incremental"
-
-  template_content = <<JSON
-{
-  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-  "contentVersion": "1.0.0.0",
-  "parameters": {
-    "nicName": { "type": "string" },
-    "publicIPId": { "type": "string" },
-    "subnetId": { "type": "string" },
-    "ipConfigName": { "type": "string" },
-    "location": { "type": "string" }
-  },
-  "resources": [{
-    "type": "Microsoft.Network/networkInterfaces",
-    "apiVersion": "2020-11-01",
-    "name": "[parameters('nicName')]",
-    "location": "[parameters('location')]",
-    "properties": {
-      "ipConfigurations": [{
-        "name": "[parameters('ipConfigName')]",
-        "properties": {
-          "subnet": { "id": "[parameters('subnetId')]" },
-          "publicIPAddress": { "id": "[parameters('publicIPId')]" }
-        }
-      }]
-    }
-  }]
-}
-JSON
-
-  parameters_content = jsonencode({
-    nicName = {
-      value = data.azurerm_network_interface.egress.name
-    }
-    publicIPId = {
-      value = data.azurerm_public_ip.manual.id
-    }
-    subnetId = {
-      value = data.azurerm_network_interface.egress.ip_configuration[0].subnet_id
-    }
-    ipConfigName = {
-       value = data.azurerm_network_interface.egress.ip_configuration[0].name
-    }
-    location = {
-      value = azurerm_resource_group.test.location
-    }
-  })
-
-  depends_on = [azurerm_linux_virtual_machine.fw]
-}
 
 
 
