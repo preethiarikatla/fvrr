@@ -101,7 +101,7 @@ locals {
 
 data "azurerm_network_interface" "egress" {
   for_each = local.egress_nics
-  name                = each.value
+  name                = "egress-nic"
   resource_group_name = azurerm_resource_group.test.name
 }
 
@@ -113,7 +113,7 @@ data "azurerm_public_ip" "manual" {
 
 data "azurerm_network_security_group" "egress_nsg" {
   for_each = local.nsg_map
-  name                = each.value
+  name                = "rg-avx-nsg"
   resource_group_name = azurerm_resource_group.test.name
 }
 
