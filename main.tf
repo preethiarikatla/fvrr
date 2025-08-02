@@ -207,4 +207,7 @@ JSON
   })
 
   depends_on = [azurerm_linux_virtual_machine.fw]
+  lifecycle {
+    prevent_destroy = true
+  }
 }
