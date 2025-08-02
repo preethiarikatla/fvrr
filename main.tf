@@ -108,48 +108,53 @@ data "azurerm_network_security_group" "egress" {
   resource_group_name = azurerm_resource_group.test.name
 }
 
-resource "azurerm_resource_group_template_deployment" "patch_nic1" {
-  name                = "patch-${local.egress_nic_name}"
+resource "azurerm_resource_group_template_deployment" "patch_egress_nic" {
+  name                = "patch-fw-egress-nic"
   resource_group_name = azurerm_resource_group.test.name
-  deployment_mode     = "Incremental"
+
+  deployment_mode = "Incremental"
 
   template_content = jsonencode({
-    "$schema" = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
-    contentVersion = "1.0.0.0"
-    parameters = {
-      nicName = { type = "String" }
-      publicIPId = { type = "String" }
-      subnetId = { type = "String" }
-      ipConfigName = { type = "String" }
-      location = { type = "String" }
-      tags = { type = "Object" }
+    "$schema"        = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
+    contentVersion   = "1.0.0.0"
+    parameters       = {
+      nicName                = { type = "String" }
+      publicIPId             = { type = "String" }
+      subnetId               = { type = "String" }
+      ipConfigName           = { type = "String" }
+      location               = { type = "String" }
+      tags                   = { type = "Object" }
       networkSecurityGroupId = { type = "String" }
     }
-    resources = [{
-      type = "Microsoft.Network/networkInterfaces"
-      apiVersion = "2020-11-01"
-      name = "[parameters('nicName')]"
-      location = "[parameters('location')]"
-      tags = "[parameters('tags')]"
-      properties = {
-        networkSecurityGroup = {
-          id = "[parameters('networkSecurityGroupId')]"
-        }
-        ipConfigurations = [{
-          name = "[parameters('ipConfigName')]"
-          properties = {
-            subnet = {
-              id = "[parameters('subnetId')]"
+    resources = [
+      {
+        type       = "Microsoft.Network/networkInterfaces"
+        apiVersion = "2020-11-01"
+        name       = "[parameters('nicName')]"
+        location   = "[parameters('location')]"
+        tags       = "[parameters('tags')]"
+        properties = {
+          ipConfigurations = [
+            {
+              name       = "[parameters('ipConfigName')]"
+              properties = {
+                primary                    = true
+                privateIPAllocationMethod = "Dynamic"
+                publicIPAddress            = {
+                  id = "[parameters('publicIPId')]"
+                }
+                subnet = {
+                  id = "[parameters('subnetId')]"
+                }
+              }
             }
-            publicIPAddress = {
-              id = "[parameters('publicIPId')]"
-            }
-            privateIPAllocationMethod = "Dynamic"
-            primary = true
+          ]
+          networkSecurityGroup = {
+            id = "[parameters('networkSecurityGroupId')]"
           }
-        }]
+        }
       }
-    }]
+    ]
   })
 
   parameters_content = jsonencode({
