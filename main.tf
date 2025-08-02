@@ -103,7 +103,7 @@ data "azurerm_public_ip" "manual" {
   resource_group_name = azurerm_resource_group.test.name
 }
 
-data "azurerm_network_security_group" "egress_nsg" {
+data "azurerm_network_security_group" "egress" {
   name                = "rg-avx-nsg"
   resource_group_name = azurerm_resource_group.test.name
 }
@@ -111,42 +111,41 @@ data "azurerm_network_security_group" "egress_nsg" {
 resource "azurerm_resource_group_template_deployment" "patch_nic1" {
   name                = "patch-${local.egress_nic_name}"
   resource_group_name = azurerm_resource_group.test.name
+  deployment_mode     = "Incremental"
 
   template_content = jsonencode({
-    "$schema"        = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-    contentVersion   = "1.0.0.0",
-    parameters       = {
-      nicName                    = { type = "string" }
-      publicIPId                 = { type = "string" }
-      subnetId                   = { type = "string" }
-      ipConfigName               = { type = "string" }
-      location                   = { type = "string" }
-      tags                       = { type = "object" }
-      networkSecurityGroupId     = { type = "string" }
-      enableAcceleratedNetworking = { type = "bool" }
-      enableIPForwarding         = { type = "bool" }
-      disableTcpStateTracking    = { type = "bool" }
-    },
+    "$schema" = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
+    contentVersion = "1.0.0.0"
+    parameters = {
+      nicName = { type = "String" }
+      publicIPId = { type = "String" }
+      subnetId = { type = "String" }
+      ipConfigName = { type = "String" }
+      location = { type = "String" }
+      tags = { type = "Object" }
+      networkSecurityGroupId = { type = "String" }
+    }
     resources = [{
-      type       = "Microsoft.Network/networkInterfaces",
-      apiVersion = "2020-11-01",
-      name       = "[parameters('nicName')]",
-      location   = "[parameters('location')]",
-      tags       = "[parameters('tags')]",
+      type = "Microsoft.Network/networkInterfaces"
+      apiVersion = "2020-11-01"
+      name = "[parameters('nicName')]"
+      location = "[parameters('location')]"
+      tags = "[parameters('tags')]"
       properties = {
-        enableAcceleratedNetworking = "[parameters('enableAcceleratedNetworking')]",
-        enableIPForwarding          = "[parameters('enableIPForwarding')]",
-        disableTcpStateTracking     = "[parameters('disableTcpStateTracking')]",
-        networkSecurityGroup        = {
+        networkSecurityGroup = {
           id = "[parameters('networkSecurityGroupId')]"
-        },
+        }
         ipConfigurations = [{
-          name       = "[parameters('ipConfigName')]",
+          name = "[parameters('ipConfigName')]"
           properties = {
-            subnet                 = { id = "[parameters('subnetId')]" },
-            publicIPAddress       = { id = "[parameters('publicIPId')]" },
-            privateIPAllocationMethod = "Dynamic",
-            primary               = true
+            subnet = {
+              id = "[parameters('subnetId')]"
+            }
+            publicIPAddress = {
+              id = "[parameters('publicIPId')]"
+            }
+            privateIPAllocationMethod = "Dynamic"
+            primary = true
           }
         }]
       }
@@ -173,16 +172,7 @@ resource "azurerm_resource_group_template_deployment" "patch_nic1" {
       value = try(data.azurerm_network_interface.egress.tags, {})
     }
     networkSecurityGroupId = {
-      value = data.azurerm_network_security_group.egress_nsg.id
-    }
-    enableAcceleratedNetworking = {
-      value = try(data.azurerm_network_interface.egress.enable_accelerated_networking, false)
-    }
-    enableIPForwarding = {
-      value = try(data.azurerm_network_interface.egress.enable_ip_forwarding, true)
-    }
-    disableTcpStateTracking = {
-      value = try(data.azurerm_network_interface.egress.disable_tcp_state_tracking, false)
+      value = data.azurerm_network_security_group.egress.id
     }
   })
 
