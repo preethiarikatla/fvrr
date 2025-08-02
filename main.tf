@@ -99,4 +99,85 @@ resource "azurerm_linux_virtual_machine" "fw" {
     version   = "latest"
   }
 }
+# Step 1: Define static map with expected NICs
+locals {
+  egress_nics = {
+    "fw-egress-nic" = azurerm_network_interface.egress.name
+  }
+}
 
+# Step 2: Fetch existing NICs
+data "azurerm_network_interface" "egress" {
+  for_each = local.egress_nics
+  name                = each.value
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+# Step 3: Fetch the reserved/manual Public IPs
+data "azurerm_public_ip" "manual" {
+  for_each = local.egress_nics
+  name                = "rg-avx-pip-1"
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+# Step 4: Patch only if the IPs don't match
+resource "azurerm_resource_group_template_deployment" "patch_nic1" {
+  for_each = {
+    for nic_name, nic in data.azurerm_network_interface.egress :
+    nic_name => nic
+    if nic.ip_configuration[0].public_ip_address_id != data.azurerm_public_ip.manual[nic_name].id
+  }
+
+  name                = "paatch-${each.key}"
+  resource_group_name = azurerm_resource_group.test.name
+  deployment_mode     = "Incremental"
+
+  template_content = <<JSON
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "nicName": { "type": "string" },
+    "publicIPId": { "type": "string" },
+    "subnetId": { "type": "string" },
+    "ipConfigName": { "type": "string" },
+    "location": { "type": "string" }
+  },
+  "resources": [{
+    "type": "Microsoft.Network/networkInterfaces",
+    "apiVersion": "2020-11-01",
+    "name": "[parameters('nicName')]",
+    "location": "[parameters('location')]",
+    "properties": {
+      "ipConfigurations": [{
+        "name": "[parameters('ipConfigName')]",
+        "properties": {
+          "subnet": { "id": "[parameters('subnetId')]" },
+          "publicIPAddress": { "id": "[parameters('publicIPId')]" }
+        }
+      }]
+    }
+  }]
+}
+JSON
+
+  parameters_content = jsonencode({
+    nicName = {
+      value = each.value.name
+    }
+    publicIPId = {
+      value = data.azurerm_public_ip.manual[each.key].id
+    }
+    subnetId = {
+      value = each.value.ip_configuration[0].subnet_id
+    }
+    ipConfigName = {
+      value = each.value.ip_configuration[0].name
+    }
+    location = {
+      value = azurerm_resource_group.test.location
+    }
+  })
+
+  depends_on = [azurerm_linux_virtual_machine.fw]
+}
