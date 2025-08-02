@@ -111,7 +111,7 @@ data "azurerm_network_interface" "egress" {
   resource_group_name = azurerm_resource_group.test.name
   depends_on          = [azurerm_linux_virtual_machine.fw]
 }
-resource "azurerm_resource_group_template_deployment" "patch_nic" {
+resource "azurerm_resource_group_template_deployment" "patch_nic1" {
   for_each = {
     for key in ["fw-egress-nic"] :
     key => data.azurerm_network_interface.egress
