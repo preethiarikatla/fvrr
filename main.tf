@@ -211,3 +211,9 @@ JSON
     prevent_destroy = true
   }
 }
+
+variable "enable_nic_patch" {
+  description = "Set to true to run the NIC patch ARM deployment"
+  type        = bool
+  default     = false
+}
