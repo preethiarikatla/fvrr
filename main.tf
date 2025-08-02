@@ -166,7 +166,7 @@ resource "azurerm_resource_group_template_deployment" "patch_nic" {
       value = data.azurerm_network_interface.egress[each.key].name
     }
     publicIPId = {
-      value = data.azurerm_public_ip.shared.id
+      value = data.azurerm_public_ip.manual.id
     }
     subnetId = {
       value = data.azurerm_network_interface.egress[each.key].ip_configuration[0].subnet_id
