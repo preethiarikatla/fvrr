@@ -92,7 +92,7 @@ resource "azurerm_linux_virtual_machine" "fw" {
 # Define multiple NICs to patch
 locals {
   egress_nics = {
-    "fw-egress-nic"  = "egress-nic-fw"
+    "fw-egress-nic"  = "egress-nic"
     #"fw2-egress-nic" = "egress-nic-fw2"
   }
 }
