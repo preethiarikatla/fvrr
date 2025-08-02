@@ -71,6 +71,7 @@ resource "azurerm_network_interface" "egress" {
     ]
   }
   }
+}
 resource "azurerm_linux_virtual_machine" "fw" {
   name                            = "fw-test-vm"
   location                        = azurerm_resource_group.test.location
