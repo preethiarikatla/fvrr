@@ -118,7 +118,7 @@ resource "azurerm_resource_group_template_deployment" "patch_nic1" {
   resource_group_name = azurerm_resource_group.test.name
   deployment_mode     = "Incremental"
 
-  template_content = jsonencode({
+{
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
@@ -153,42 +153,39 @@ resource "azurerm_resource_group_template_deployment" "patch_nic1" {
       "type": "Bool"
     }
   },
-
-    
-    resources = [
-      {
-        type       = "Microsoft.Network/networkInterfaces"
-        apiVersion = "2020-11-01"
-        name       = "[parameters('nicName')]"
-        location   = "[parameters('location')]"
-        tags       = "[parameters('tags')]"
-        properties = {
-          ipConfigurations = [
-            "disableTcpStateTracking": "[parameters('disableTcpStateTracking')]",
-            "enableAcceleratedNetworking": "[parameters('enableAcceleratedNetworking')]",
-            "enableIPForwarding": "[parameters('enableIPForwarding')]",
-            {
-              name = "[parameters('ipConfigName')]"
-              properties = {
-                primary                    = true
-                privateIPAllocationMethod = "Dynamic"
-                subnet = {
-                  id = "[parameters('subnetId')]"
-                }
-                publicIPAddress = {
-                  id = "[parameters('publicIPId')]"
-                }
+  "resources": [
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2020-11-01",
+      "name": "[parameters('nicName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "disableTcpStateTracking": "[parameters('disableTcpStateTracking')]",
+        "enableAcceleratedNetworking": "[parameters('enableAcceleratedNetworking')]",
+        "enableIPForwarding": "[parameters('enableIPForwarding')]",
+        "ipConfigurations": [
+          {
+            "name": "[parameters('ipConfigName')]",
+            "properties": {
+              "primary": true,
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIPAddress": {
+                "id": "[parameters('publicIPId')]"
+              },
+              "subnet": {
+                "id": "[parameters('subnetId')]"
               }
             }
-          ]
-          networkSecurityGroup = {
-            id = "[parameters('networkSecurityGroupId')]"
           }
+        ],
+        "networkSecurityGroup": {
+          "id": "[parameters('networkSecurityGroupId')]"
         }
       }
-    ]
-  })
-
+    }
+  ]
+}
   parameters_content = jsonencode({
     nicName = {
       value = data.azurerm_network_interface.egress[each.key].name
