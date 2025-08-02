@@ -109,7 +109,12 @@ data "azurerm_public_ip" "manual" {
 }
 
 data "azurerm_network_security_group" "egress_nsg" {
-  for_each = var.enable_nic_patch ? local.egress_nics : {}
+  #for_each = var.enable_nic_patch ? local.egress_nics : {}
+  for_each = {
+    for nic_name, nic in data.azurerm_network_interface.egress :
+    nic_name => nic
+    if nic.ip_configuration[0].public_ip_address_id != data.azurerm_public_ip.manual[nic_name].id
+  }
   name                = "rg-avx-nsg"
   resource_group_name = azurerm_resource_group.test.name
 }
@@ -198,7 +203,5 @@ JSON
   })
 
   depends_on = [azurerm_linux_virtual_machine.fw]
-  lifecycle {
-    prevent_destroy = true
-  }
+
 }
