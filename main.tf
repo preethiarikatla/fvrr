@@ -18,7 +18,7 @@ variable "enable_nic_patch" {
 }
 
 resource "azurerm_resource_group" "test" {
-  name     = "rg-avx-sim"z
+  name     = "rg-avx-sim"
   location = "East US"
 }
 
