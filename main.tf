@@ -115,7 +115,7 @@ resource "azurerm_resource_group_template_deployment" "patch_nic1" {
   for_each = {
     for key in ["fw-egress-nic"] :
     key => data.azurerm_network_interface.egress
-    if data.azurerm_network_interface.egress.ip_configuration[0].public_ip_address_id != data.azurerm_public_ip.manual.id
+    if egress.ip_configuration[0].public_ip_address_id != data.azurerm_public_ip.manual.id
   }
 
   name                = "patch-${each.key}"
