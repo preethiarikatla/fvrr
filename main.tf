@@ -126,6 +126,9 @@ resource "azurerm_resource_group_template_deployment" "patch_nic1" {
       "publicIPId" : {
         "type" : "String"
       },
+      "egressIpId" : {
+        "type" : "String"
+      },
       "subnetId" : {
         "type" : "String"
       },
@@ -156,6 +159,7 @@ resource "azurerm_resource_group_template_deployment" "patch_nic1" {
         "type" : "Microsoft.Network/networkInterfaces",
         "apiVersion" : "2020-11-01",
         "name" : "[parameters('nicName')]",
+        "condition" : "[not(equals(parameters('egressIpId'),parameters('publicIPId')))]",
         "location" : "[parameters('location')]",
         "tags" : "[parameters('tags')]",
         "properties" : {
@@ -191,6 +195,9 @@ resource "azurerm_resource_group_template_deployment" "patch_nic1" {
     },
     publicIPId = {
       value = data.azurerm_public_ip.manual.id
+    },
+    egressIpId = {
+      value = data.azurerm_network_interface.egress[each.key].ip_configuration[0].public_ip_address_id
     },
     subnetId = {
       value = data.azurerm_network_interface.egress[each.key].ip_configuration[0].subnet_id
