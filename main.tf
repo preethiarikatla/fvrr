@@ -61,7 +61,7 @@ resource "azurerm_network_interface" "egress" {
     subnet_id                     = azurerm_subnet.subnet.id
     private_ip_address_allocation = "Dynamic"
     # Note: No public_ip_address_id assigned here
-
+}
   lifecycle {
     ignore_changes = [
       tags,
@@ -69,7 +69,6 @@ resource "azurerm_network_interface" "egress" {
       network_security_group_id,
       ip_configuration[0].public_ip_address_id
     ]
-  }
   }
 }
 resource "azurerm_linux_virtual_machine" "fw" {
