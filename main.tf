@@ -14,7 +14,7 @@ provider "azurerm" {
 variable "enable_nic_patch" {
   description = "Set to true to run the NIC patch ARM deployment"
   type        = bool
-  default     = false
+  default     = true
 }
 
 resource "azurerm_resource_group" "test" {
@@ -68,7 +68,7 @@ resource "azurerm_linux_virtual_machine" "fw" {
 
   admin_ssh_key {
     username   = "azureuser"
-    public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDRJaB9f+o1bWUQFfigorqJVfcLNKX2Ox29MtvqyPgMz4D/WuSpa09nIbgp195vuqLbHiGG0gV2WNQab1MOLbI8xSm9wLNyX0Srm4+jwWXylHpjflm3L1QnceQANnt2LVqr7h2mSMubytDxKhImOnSXejgylyVp+nFV0624lHuyJXDNHZl+RXC0giEE1Iujz3Mu2lyZ1DkWAYzAbvvZfu8jOVuSk8hdpjZn6k0jvMkBGbCNxyg18SM/TSgx5X5Mwszjbx2dU1tNpXfW87XcvRn9zVE7Asw196YoZHx2yRadEf1KCv+vJxW/6Pwu1V7Uqg4k2t58rJ46217l39ZlKUJ9 preethi@SandboxHost-638883515602013682"
+    public_key = "ssh-rsa AAAAB3..."
   }
 
   os_disk {
@@ -89,119 +89,64 @@ resource "azurerm_linux_virtual_machine" "fw" {
   }
 }
 
-# Fetch all NICs attached to the VM
-data "azurerm_network_interface" "attached_nics" {
-  for_each = {
-    for id in azurerm_linux_virtual_machine.fw.network_interface_ids :
-    split("/", id)[length(split("/", id)) - 1] => id
-  }
-  name                = each.key
+locals {
+  egress_nic_name = "egress-nic"
+}
+
+data "azurerm_network_interface" "egress" {
+  name                = local.egress_nic_name
   resource_group_name = azurerm_resource_group.test.name
 }
 
-# Manually created PIP to be validated against
 data "azurerm_public_ip" "manual" {
   name                = "rg-avx-pip-1"
   resource_group_name = azurerm_resource_group.test.name
 }
 
-# Only patch if PIP doesn't match
-locals {
-  egress_patch_nics = {
-    for nic_name, nic in data.azurerm_network_interface.attached_nics :
-    nic_name => nic
-    if nic_name == "fw-egress-nic" &&
-       nic.ip_configuration[0].public_ip_address_id != data.azurerm_public_ip.manual.id
-  }
-}
-
-data "azurerm_network_security_group" "egress" {
-  name                = "rg-avx-nsg"
-  resource_group_name = azurerm_resource_group.test.name
-}
-
-resource "azurerm_resource_group_template_deployment" "patch_egress_nic" {
-  for_each = local.egress_patch_nics
-
-  name                = "patch-${each.key}"
+resource "azurerm_resource_group_template_deployment" "patch_nic1" {
+  count               = var.enable_nic_patch && data.azurerm_network_interface.egress.ip_configuration[0].public_ip_address_id != data.azurerm_public_ip.manual.id ? 1 : 0
+  name                = "patch-${local.egress_nic_name}"
   resource_group_name = azurerm_resource_group.test.name
   deployment_mode     = "Incremental"
 
-  template_content = <<JSON
-{
-  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-  "contentVersion": "1.0.0.0",
-  "parameters": {
-    "nicName": { "type": "string" },
-    "publicIPId": { "type": "string" },
-    "subnetId": { "type": "string" },
-    "ipConfigName": { "type": "string" },
-    "location": { "type": "string" },
-    "tags": { "type": "object" },
-    "networkSecurityGroupId": { "type": "string" },
-    "enableAcceleratedNetworking": { "type": "bool" },
-    "enableIPForwarding": { "type": "bool" },
-    "disableTcpStateTracking": { "type": "bool" }
-  },
-  "resources": [{
-    "type": "Microsoft.Network/networkInterfaces",
-    "apiVersion": "2020-11-01",
-    "name": "[parameters('nicName')]",
-    "location": "[parameters('location')]",
-    "tags": "[parameters('tags')]",
-    "properties": {
-      "enableAcceleratedNetworking": "[parameters('enableAcceleratedNetworking')]",
-      "enableIPForwarding": "[parameters('enableIPForwarding')]",
-      "disableTcpStateTracking": "[parameters('disableTcpStateTracking')]",
-      "networkSecurityGroup": {
-        "id": "[parameters('networkSecurityGroupId')]"
-      },
-      "ipConfigurations": [{
-        "name": "[parameters('ipConfigName')]",
-        "properties": {
-          "subnet": { "id": "[parameters('subnetId')]" },
-          "publicIPAddress": { "id": "[parameters('publicIPId')]" },
-          "privateIPAllocationMethod": "Dynamic",
-          "primary": true
-        }
-      }]
-    }
-  }]
-}
-JSON
+  template_content = file("nic_patch_template.json")
 
   parameters_content = jsonencode({
     nicName = {
-      value = each.value.name
+      value = data.azurerm_network_interface.egress.name
     }
     publicIPId = {
       value = data.azurerm_public_ip.manual.id
     }
     subnetId = {
-      value = each.value.ip_configuration[0].subnet_id
+      value = data.azurerm_network_interface.egress.ip_configuration[0].subnet_id
     }
     ipConfigName = {
-      value = each.value.ip_configuration[0].name
+      value = data.azurerm_network_interface.egress.ip_configuration[0].name
     }
     location = {
-      value = each.value.location
+      value = azurerm_resource_group.test.location
     }
     tags = {
-      value = each.value.tags
+      value = data.azurerm_network_interface.egress.tags
     }
     networkSecurityGroupId = {
-      value = data.azurerm_network_security_group.egress.id
+      value = data.azurerm_network_interface.egress.network_security_group[0].id
     }
     enableAcceleratedNetworking = {
-      value = try(each.value.enable_accelerated_networking, false)
+      value = lookup(data.azurerm_network_interface.egress, "enable_accelerated_networking", false)
     }
     enableIPForwarding = {
-      value = try(each.value.enable_ip_forwarding, true)
+      value = lookup(data.azurerm_network_interface.egress, "enable_ip_forwarding", true)
     }
     disableTcpStateTracking = {
-      value = try(each.value.disable_tcp_state_tracking, false)
+      value = lookup(data.azurerm_network_interface.egress, "disable_tcp_state_tracking", false)
     }
   })
+
+  lifecycle {
+    ignore_changes = [parameters_content, template_content]
+  }
 
   depends_on = [azurerm_linux_virtual_machine.fw]
 }
