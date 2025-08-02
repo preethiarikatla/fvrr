@@ -121,7 +121,7 @@ data "azurerm_public_ip" "manual" {
 }
 
 # Step 4: Patch only if the IPs don't match
-resource "azurerm_resource_group_template_deployment" "patch_nic" {
+resource "azurerm_resource_group_template_deployment" "patch_nic1" {
   for_each = {
     for nic_name, nic in data.azurerm_network_interface.egress :
     nic_name => nic
