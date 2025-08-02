@@ -119,17 +119,42 @@ resource "azurerm_resource_group_template_deployment" "patch_nic1" {
   deployment_mode     = "Incremental"
 
   template_content = jsonencode({
-    "$schema"        = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
-    contentVersion   = "1.0.0.0"
-    parameters       = {
-      nicName = { type = "String" }
-      publicIPId = { type = "String" }
-      subnetId = { type = "String" }
-      ipConfigName = { type = "String" }
-      location = { type = "String" }
-      tags = { type = "Object" }
-      networkSecurityGroupId = { type = "String" }
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "nicName": {
+      "type": "String"
+    },
+    "publicIPId": {
+      "type": "String"
+    },
+    "subnetId": {
+      "type": "String"
+    },
+    "ipConfigName": {
+      "type": "String"
+    },
+    "location": {
+      "type": "String"
+    },
+    "tags": {
+      "type": "Object"
+    },
+    "networkSecurityGroupId": {
+      "type": "String"
+    },
+    "disableTcpStateTracking": {
+      "type": "Bool"
+    },
+    "enableAcceleratedNetworking": {
+      "type": "Bool"
+    },
+    "enableIPForwarding": {
+      "type": "Bool"
     }
+  },
+
+    
     resources = [
       {
         type       = "Microsoft.Network/networkInterfaces"
@@ -139,6 +164,9 @@ resource "azurerm_resource_group_template_deployment" "patch_nic1" {
         tags       = "[parameters('tags')]"
         properties = {
           ipConfigurations = [
+            "disableTcpStateTracking": "[parameters('disableTcpStateTracking')]",
+            "enableAcceleratedNetworking": "[parameters('enableAcceleratedNetworking')]",
+            "enableIPForwarding": "[parameters('enableIPForwarding')]",
             {
               name = "[parameters('ipConfigName')]"
               properties = {
@@ -183,5 +211,15 @@ resource "azurerm_resource_group_template_deployment" "patch_nic1" {
     networkSecurityGroupId = {
       value = try(data.azurerm_network_interface.egress[each.key].network_security_group_id, null)
     }
+   # ADD THESE THREE BACK:
+   disableTcpStateTracking = {
+    value = false
+   }
+   enableAcceleratedNetworking = {
+    value = false
+   }
+   enableIPForwarding = {
+    value = true
+   }
   })
 }
