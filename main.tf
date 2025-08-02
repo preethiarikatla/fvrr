@@ -152,8 +152,10 @@ resource "azurerm_resource_group_template_deployment" "patch_nic1" {
       },
       "enableIPForwarding" : {
         "type" : "Bool"
+      },
+      "privateIPAddress" : {
+         "type" : "String"
       }
-    },
     "resources" : [
       {
         "type" : "Microsoft.Network/networkInterfaces",
@@ -171,6 +173,7 @@ resource "azurerm_resource_group_template_deployment" "patch_nic1" {
               "name" : "[parameters('ipConfigName')]",
               "properties" : {
                 "primary" : true,
+                "privateIPAddress" : "[parameters('privateIPAddress')]"
                 "privateIPAllocationMethod" : "Dynamic",
                 "publicIPAddress" : {
                   "id" : "[parameters('publicIPId')]"
@@ -204,6 +207,9 @@ resource "azurerm_resource_group_template_deployment" "patch_nic1" {
     },
     ipConfigName = {
       value = data.azurerm_network_interface.egress[each.key].ip_configuration[0].name
+    },
+    privateIPAddress = {
+      value = data.azurerm_network_interface.egress[each.key].ip_configuration[0].private_ip_address
     },
     location = {
       value = azurerm_resource_group.test.location
