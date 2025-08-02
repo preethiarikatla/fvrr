@@ -91,14 +91,10 @@ resource "azurerm_linux_virtual_machine" "fw" {
 
 # Define multiple NICs to patch
 locals {
-  firewall_instances = {
+  egress_nics = {
     "fw-egress-nic"  = "egress-nic"
     #"fw2-egress-nic" = "egress-nic-fw2"
   }
-egress_nics = {
- for name, fw in local.firewall_instances :
- name => fw.nic
-}
 }
 
 # Fetch each NIC
@@ -115,7 +111,7 @@ data "azurerm_public_ip" "manual" {
 }
 
 resource "azurerm_resource_group_template_deployment" "patch_nic1" {
-  for_each = local.egress_nics
+  for_each = data.azurerm_network_interface.egress
 
   name                = "patch-${each.key}"
   resource_group_name = azurerm_resource_group.test.name
