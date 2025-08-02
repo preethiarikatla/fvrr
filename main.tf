@@ -51,26 +51,7 @@ resource "azurerm_network_interface" "mgmt" {
     public_ip_address_id          = azurerm_public_ip.mgmt.id
   }
 }
-resource "azurerm_network_interface" "egress" {
-  name                = "fw-egress-nic"
-  location            = azurerm_resource_group.test.location
-  resource_group_name = azurerm_resource_group.test.name
 
-  ip_configuration {
-    name                          = "ipconfig1"
-    subnet_id                     = azurerm_subnet.subnet.id
-    private_ip_address_allocation = "Dynamic"
-    # Note: No public_ip_address_id assigned here
-}
-  lifecycle {
-    ignore_changes = [
-      tags,
-      enable_ip_forwarding,
-      network_security_group_id,
-      ip_configuration[0].public_ip_address_id
-    ]
-  }
-}
 resource "azurerm_linux_virtual_machine" "fw" {
   name                            = "fw-test-vm"
   location                        = azurerm_resource_group.test.location
@@ -78,7 +59,6 @@ resource "azurerm_linux_virtual_machine" "fw" {
   size                            = "Standard_B1s"
   network_interface_ids           = [
     azurerm_network_interface.mgmt.id,
-    azurerm_network_interface.egress.id
   ]
   admin_username                  = "azureuser"
   disable_password_authentication = true
