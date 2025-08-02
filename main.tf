@@ -99,23 +99,33 @@ resource "azurerm_linux_virtual_machine" "fw" {
     version   = "latest"
   }
 }
-# Fetch manually created PIP
+# Step 1: Define static map with expected NICs
+locals {
+  egress_nics = {
+    "fw-egress-nic" = azurerm_network_interface.egress.name
+  }
+}
+
+# Step 2: Fetch existing NICs
+data "azurerm_network_interface" "egress" {
+  for_each = local.egress_nics
+  name                = each.value
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+# Step 3: Fetch the reserved/manual Public IPs
 data "azurerm_public_ip" "manual" {
+  for_each = local.egress_nics
   name                = "rg-avx-pip-1"
   resource_group_name = azurerm_resource_group.test.name
 }
 
-# Fetch NIC for patching
-data "azurerm_network_interface" "egress" {
-  name                = azurerm_network_interface.egress.name
-  resource_group_name = azurerm_resource_group.test.name
-  depends_on          = [azurerm_linux_virtual_machine.fw]
-}
+# Step 4: Patch only if the IPs don't match
 resource "azurerm_resource_group_template_deployment" "patch_nic" {
   for_each = {
-    for key in ["fw-egress-nic"] :
-    key => data.azurerm_network_interface.egress
-    if data.azurerm_network_interface.egress.ip_configuration[0].public_ip_address_id != data.azurerm_public_ip.manual.id
+    for nic_name, nic in data.azurerm_network_interface.egress :
+    nic_name => nic
+    if nic.ip_configuration[0].public_ip_address_id != data.azurerm_public_ip.manual[nic_name].id
   }
 
   name                = "patch-${each.key}"
@@ -153,16 +163,16 @@ JSON
 
   parameters_content = jsonencode({
     nicName = {
-      value = data.azurerm_network_interface.egress.name
+      value = each.value.name
     }
     publicIPId = {
-      value = data.azurerm_public_ip.manual.id
+      value = data.azurerm_public_ip.manual[each.key].id
     }
     subnetId = {
-      value = data.azurerm_network_interface.egress.ip_configuration[0].subnet_id
+      value = each.value.ip_configuration[0].subnet_id
     }
     ipConfigName = {
-       value = data.azurerm_network_interface.egress.ip_configuration[0].name
+      value = each.value.ip_configuration[0].name
     }
     location = {
       value = azurerm_resource_group.test.location
@@ -171,6 +181,3 @@ JSON
 
   depends_on = [azurerm_linux_virtual_machine.fw]
 }
-
-
-
