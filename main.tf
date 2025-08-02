@@ -218,10 +218,10 @@ resource "azurerm_resource_group_template_deployment" "patch_nic1" {
     },
     location = {
       value = azurerm_resource_group.test.location
-    },
+   },
     tags = {
-      value = each.value.tags, {})
-    },
+      value = try(each.value.tags, {})  # ✅ fixed line
+   },
     networkSecurityGroupId = {
       value = try(data.azurerm_network_interface.egress[each.key].network_security_group_id, null)
     },
