@@ -90,24 +90,9 @@ resource "azurerm_linux_virtual_machine" "fw" {
 }
 
 locals {
+  # Assuming index 1 is the egress NIC. Adjust index if needed (e.g., [0] if it’s the first one)
   egress_nics = {
-    "fw-egress-nic" = "fw-egress-nic"
-  }
-
-  nsg_map = {
-    "fw-egress-nic" = "nsg-fw-egress"
-  }
-}
-
-locals {
-  egress_nics = {
-    "egress-nic" = {
-      name = "egress-nic"
-    }
-  }
-
-  nsg_map = {
-    "egress-nic" = "nsg-fw-egress"
+    "fw-egress-nic" = split("/", azurerm_linux_virtual_machine.fw.network_interface_ids[1])[length(split("/", azurerm_linux_virtual_machine.fw.network_interface_ids[1])) - 1]
   }
 }
 
@@ -124,7 +109,7 @@ data "azurerm_public_ip" "manual" {
 }
 
 data "azurerm_network_security_group" "egress_nsg" {
-  for_each = local.nsg_map
+  for_each = var.enable_nic_patch ? local.egress_nics : {}
   name                = "rg-avx-nsg"
   resource_group_name = azurerm_resource_group.test.name
 }
