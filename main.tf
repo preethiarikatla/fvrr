@@ -97,7 +97,7 @@ locals {
   }
 egress_nics = {
  for name, fw in local.firewall_instances :
- name => fw.egress_interface
+ name => fw.nic_name
 }
 }
 
