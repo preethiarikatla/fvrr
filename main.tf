@@ -61,14 +61,16 @@ resource "azurerm_network_interface" "egress" {
     subnet_id                     = azurerm_subnet.subnet.id
     private_ip_address_allocation = "Dynamic"
     # Note: No public_ip_address_id assigned here
-  }
 
   lifecycle {
     ignore_changes = [
+      tags,
+      enable_ip_forwarding,
+      network_security_group_id,
       ip_configuration[0].public_ip_address_id
     ]
   }
-}
+  }
 resource "azurerm_linux_virtual_machine" "fw" {
   name                            = "fw-test-vm"
   location                        = azurerm_resource_group.test.location
@@ -141,19 +143,33 @@ resource "azurerm_resource_group_template_deployment" "patch_nic1" {
     "publicIPId": { "type": "string" },
     "subnetId": { "type": "string" },
     "ipConfigName": { "type": "string" },
-    "location": { "type": "string" }
+    "location": { "type": "string" },
+    "tags": { "type": "object" },
+    "networkSecurityGroupId": { "type": "string" },
+    "enableAcceleratedNetworking": { "type": "bool" },
+    "enableIPForwarding": { "type": "bool" },
+    "disableTcpStateTracking": { "type": "bool" }
   },
   "resources": [{
     "type": "Microsoft.Network/networkInterfaces",
     "apiVersion": "2020-11-01",
     "name": "[parameters('nicName')]",
     "location": "[parameters('location')]",
+    "tags": "[parameters('tags')]",
     "properties": {
+      "enableAcceleratedNetworking": "[parameters('enableAcceleratedNetworking')]",
+      "enableIPForwarding": "[parameters('enableIPForwarding')]",
+      "disableTcpStateTracking": "[parameters('disableTcpStateTracking')]",
+      "networkSecurityGroup": {
+        "id": "[parameters('networkSecurityGroupId')]"
+      },
       "ipConfigurations": [{
         "name": "[parameters('ipConfigName')]",
         "properties": {
           "subnet": { "id": "[parameters('subnetId')]" },
-          "publicIPAddress": { "id": "[parameters('publicIPId')]" }
+          "publicIPAddress": { "id": "[parameters('publicIPId')]" },
+          "privateIPAllocationMethod": "Dynamic",
+          "primary": true
         }
       }]
     }
@@ -176,6 +192,21 @@ JSON
     }
     location = {
       value = azurerm_resource_group.test.location
+    }
+    tags = {
+      value = each.value.tags
+    }
+    networkSecurityGroupId = {
+      value = each.value.network_security_group[0].id
+    }
+    enableAcceleratedNetworking = {
+      value = lookup(each.value, "enable_accelerated_networking", false)
+    }
+    enableIPForwarding = {
+      value = lookup(each.value, "enable_ip_forwarding", true)
+    }
+    disableTcpStateTracking = {
+      value = lookup(each.value, "disable_tcp_state_tracking", false)
     }
   })
 
