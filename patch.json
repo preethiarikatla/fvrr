@@ -27,26 +27,26 @@
         "disableTcpStateTracking": "[parameters('disableTcpStateTracking')]",
         "enableAcceleratedNetworking": "[parameters('enableAcceleratedNetworking')]",
         "enableIPForwarding": "[parameters('enableIPForwarding')]",
+        "networkSecurityGroup": {
+          "id": "[parameters('networkSecurityGroupId')]"
+        },
         "ipConfigurations": [
           {
             "name": "[parameters('ipConfigName')]",
             "properties": {
+              "subnet": {
+                 "id": "[parameters('subnetId')]"
+              },
+              "publicIPAddress": {
+                 "id": "[parameters('publicIPId')]"
+              },
               "primary": true,
               "privateIPAddress": "[parameters('privateIPAddress')]",
               "privateIPAllocationMethod": "Dynamic",
-              "privateIPAddressVersion": "IPv4",
-              "publicIPAddress": {
-                "id": "[parameters('publicIPId')]"
-              },
-              "subnet": {
-                "id": "[parameters('subnetId')]"
-              }
+              "privateIPAddressVersion": "IPv4"
             }
           }
         ],
-        "networkSecurityGroup": {
-          "id": "[parameters('networkSecurityGroupId')]"
-        }
       }
     }
   ]
