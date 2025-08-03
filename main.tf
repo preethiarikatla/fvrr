@@ -63,7 +63,7 @@ resource "azurerm_public_ip" "pip" {
   #lifecycle {
   #  prevent_destroy = true
   #}
-#}
+}
 
 # NIC
 resource "azurerm_network_interface" "nic" {
