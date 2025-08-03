@@ -116,7 +116,7 @@ resource "azurerm_resource_group_template_deployment" "patch_nic1" {
   name                = "patch-${each.key}"
   resource_group_name = azurerm_resource_group.test.name
   deployment_mode     = "Incremental"
-  template_body       = file("${patch.json") # External file reference
+  template_body       = file("${path.module}/patch.json") # External file reference
 
   parameters_content = jsonencode({
     nicName = { value = each.value.name },
