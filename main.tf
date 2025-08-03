@@ -122,7 +122,7 @@ data "azurerm_public_ip" "manual" {
   resource_group_name = azurerm_resource_group.test.name
 }
 data "azurerm_network_security_group" "existing_nsg" {
-  name                = "rg-avx-nsg"
+  name                = "egress-nsg"
   resource_group_name = azurerm_resource_group.test.name
 }
 
