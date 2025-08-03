@@ -128,8 +128,10 @@ data "azurerm_network_security_group" "existing_nsg" {
 
 
 resource "azurerm_resource_group_template_deployment" "patch_nic1" {
- for_each = var.enable_patch ? data.azurerm_network_interface.egress : {}
-  count = contains(var.skip_patch_nics, each.key) ? 0 : 1
+for_each = var.enable_patch ? {
+  for k, v in data.azurerm_network_interface.egress :
+  k => v if !(contains(var.skip_patch_nics, k))
+} : {}
 
   name                = "patch-${each.key}"
   resource_group_name = azurerm_resource_group.test.name
