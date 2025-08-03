@@ -60,10 +60,10 @@ resource "azurerm_public_ip" "pip" {
   resource_group_name = azurerm_resource_group.rg.name
   allocation_method   = "Static"
   sku                 = "Basic"
-  lifecycle {
-    prevent_destroy = true
-  }
-}
+  #lifecycle {
+  #  prevent_destroy = true
+  #}
+#}
 
 # NIC
 resource "azurerm_network_interface" "nic" {
