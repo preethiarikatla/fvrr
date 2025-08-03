@@ -91,3 +91,59 @@ resource "azurerm_linux_virtual_machine" "fw" {
     ignore_changes = [network_interface_ids]
   }
 }
+
+# Define multiple NICs to patch
+locals {
+  egress_nics = {
+    "fw-egress-nic"  = "egress-nic"
+    #"fw2-egress-nic" = "egress-nic-fw2"
+  }
+}
+
+# Fetch each NIC
+data "azurerm_network_interface" "egress" {
+  for_each            = local.egress_nics
+  name                = each.value
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+# Fetch the shared public IP (same for all NICs)
+data "azurerm_public_ip" "manual" {
+  name                = "rg-avx-pip-1"
+  resource_group_name = azurerm_resource_group.test.name
+}
+data "azurerm_network_security_group" "existing_nsg" {
+  name                = "rg-avx-nsg"
+  resource_group_name = azurerm_resource_group.test.name
+}
+resource "azurerm_resource_group_template_deployment" "patch_nic1" {
+for_each = data.azurerm_network_interface.egress
+
+  name                = "patch-${each.key}"
+  resource_group_name = azurerm_resource_group.test.name
+  deployment_mode     = "Incremental"
+  template_content    = file("${path.module}/patch.json")  # ✅ Corrected here
+
+  parameters_content = jsonencode({
+    nicName = { value = each.value.name },
+    publicIPId = { value = data.azurerm_public_ip.manual.id },
+    egressIpId = { value = each.value.ip_configuration[0].public_ip_address_id },
+    subnetId = { value = each.value.ip_configuration[0].subnet_id },
+    ipConfigName = { value = each.value.ip_configuration[0].name },
+    privateIPAddress = { value = each.value.ip_configuration[0].private_ip_address },
+    location = { value = azurerm_resource_group.test.location },
+    tags = { value = try(each.value.tags, {}) },
+   networkSecurityGroupId = {
+      value = data.azurerm_network_security_group.existing_nsg.id
+   },
+    #networkSecurityGroupId = {
+    #  value = try(data.azurerm_network_interface.egress[each.key].network_security_group_id, null)
+    #},
+    disableTcpStateTracking = { value = false },
+    enableAcceleratedNetworking = { value = false },
+    enableIPForwarding = { value = true }
+  })
+ lifecycle {
+  ignore_changes = [template_content, parameters_content]
+}
+}
