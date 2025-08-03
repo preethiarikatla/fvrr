@@ -109,7 +109,10 @@ data "azurerm_public_ip" "manual" {
   name                = "rg-avx-pip-1"
   resource_group_name = azurerm_resource_group.test.name
 }
-
+data "azurerm_network_security_group" "existing_nsg" {
+  name                = "rg-avx-nsg"
+  resource_group_name = azurerm_resource_group.test.name
+}
 resource "azurerm_resource_group_template_deployment" "patch_nic1" {
   for_each = data.azurerm_network_interface.egress
 
@@ -127,9 +130,12 @@ resource "azurerm_resource_group_template_deployment" "patch_nic1" {
     privateIPAddress = { value = each.value.ip_configuration[0].private_ip_address },
     location = { value = azurerm_resource_group.test.location },
     tags = { value = try(each.value.tags, {}) },
-    networkSecurityGroupId = {
-      value = try(data.azurerm_network_interface.egress[each.key].network_security_group_id, null)
-    },
+   networkSecurityGroupId = {
+      value = data.azurerm_network_security_group.existing_nsg.id
+   },
+    #networkSecurityGroupId = {
+    #  value = try(data.azurerm_network_interface.egress[each.key].network_security_group_id, null)
+    #},
     disableTcpStateTracking = { value = false },
     enableAcceleratedNetworking = { value = false },
     enableIPForwarding = { value = true }
