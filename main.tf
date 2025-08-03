@@ -43,7 +43,11 @@ resource "azurerm_public_ip" "mgmt" {
   allocation_method   = "Static"
   sku                 = "Standard"
 }
-
+variable "enable_patch" {
+  type    = bool
+  default = false
+  description = "Flag to enable or disable NIC patching"
+}
 resource "azurerm_network_interface" "mgmt" {
   name                = "fw-mgmt-nic"
   location            = azurerm_resource_group.test.location
@@ -114,7 +118,7 @@ data "azurerm_network_security_group" "existing_nsg" {
   resource_group_name = azurerm_resource_group.test.name
 }
 resource "azurerm_resource_group_template_deployment" "patch_nic1" {
-  for_each = data.azurerm_network_interface.egress
+    for_each = var.enable_patch ? data.azurerm_network_interface.egress
 
   name                = "patch-${each.key}"
   resource_group_name = azurerm_resource_group.test.name
