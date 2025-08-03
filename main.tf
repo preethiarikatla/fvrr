@@ -144,7 +144,7 @@ for_each = data.azurerm_network_interface.egress
     enableAcceleratedNetworking = { value = false },
     enableIPForwarding = { value = true }
   })
- #lifecycle {
- # ignore_changes = [template_content, parameters_content]
-#}
+ lifecycle {
+  ignore_changes = [template_content, parameters_content]
+}
 }
