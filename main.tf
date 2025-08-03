@@ -158,9 +158,9 @@ resource "azurerm_managed_disk" "default" {
 }
 
 # Attach Data Disk to VM
-resource "azurerm_virtual_machine_data_disk_attachment" "default" {
-  managed_disk_id    = azurerm_managed_disk.default.id
-  virtual_machine_id = azurerm_linux_virtual_machine.vm.id
-  lun                = 0
-  caching            = "ReadWrite"
-}
+#resource "azurerm_virtual_machine_data_disk_attachment" "default" {
+#  managed_disk_id    = azurerm_managed_disk.default.id
+# virtual_machine_id = azurerm_linux_virtual_machine.vm.id
+#  lun                = 0
+#  caching            = "ReadWrite"
+#}
