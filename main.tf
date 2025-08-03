@@ -15,7 +15,11 @@ variable "enable_nic_patch" {
   type        = bool
   default     = true
 }
-
+variable "skip_patch_nics" {
+  type        = list(string)
+  description = "List of NIC names (keys like fw1, fw2) to skip patching"
+  default     = ["fw-egress-nic"]
+}
 resource "azurerm_resource_group" "test" {
   name     = "rg-avx-sim"
   location = "East US"
@@ -44,7 +48,7 @@ resource "azurerm_public_ip" "mgmt" {
 }
 variable "enable_patch" {
   type    = bool
-  default = false
+  default = true
   description = "Flag to enable or disable NIC patching"
 }
 resource "azurerm_network_interface" "mgmt" {
@@ -100,12 +104,17 @@ locals {
   }
 }
 
+
+
+
 # Fetch each NIC
 data "azurerm_network_interface" "egress" {
   for_each            = local.egress_nics
   name                = each.value
   resource_group_name = azurerm_resource_group.test.name
 }
+
+
 
 # Fetch the shared public IP (same for all NICs)
 data "azurerm_public_ip" "manual" {
@@ -116,8 +125,11 @@ data "azurerm_network_security_group" "existing_nsg" {
   name                = "rg-avx-nsg"
   resource_group_name = azurerm_resource_group.test.name
 }
+
+
 resource "azurerm_resource_group_template_deployment" "patch_nic1" {
-for_each = data.azurerm_network_interface.egress
+ for_each = var.enable_patch ? data.azurerm_network_interface.egress : {}
+  count = contains(var.skip_patch_nics, each.key) ? 0 : 1
 
   name                = "patch-${each.key}"
   resource_group_name = azurerm_resource_group.test.name
