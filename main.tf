@@ -116,120 +116,22 @@ resource "azurerm_resource_group_template_deployment" "patch_nic1" {
   name                = "patch-${each.key}"
   resource_group_name = azurerm_resource_group.test.name
   deployment_mode     = "Incremental"
-
-  template_content = jsonencode({
-    "$schema" : "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-    "contentVersion" : "1.0.0.0",
-    "parameters" : {
-      "nicName" : {
-        "type" : "String"
-      },
-      "publicIPId" : {
-        "type" : "String"
-      },
-      "egressIpId" : {
-        "type" : "String"
-      },
-      "subnetId" : {
-        "type" : "String"
-      },
-      "ipConfigName" : {
-        "type" : "String"
-      },
-      "location" : {
-        "type" : "String"
-      },
-      "tags" : {
-        "type" : "Object"
-      },
-      "networkSecurityGroupId" : {
-        "type" : "String"
-      },
-      "disableTcpStateTracking" : {
-        "type" : "Bool"
-      },
-      "enableAcceleratedNetworking" : {
-        "type" : "Bool"
-      },
-      "enableIPForwarding" : {
-        "type" : "Bool"
-      },
-      "privateIPAddress" : {
-         "type" : "String"
-      }
-    },
-    "resources" : [
-      {
-        "type" : "Microsoft.Network/networkInterfaces",
-        "apiVersion" : "2020-11-01",
-        "name" : "[parameters('nicName')]",
-        "condition" : "[not(equals(parameters('egressIpId'),parameters('publicIPId')))]",
-        "location" : "[parameters('location')]",
-        "tags" : "[parameters('tags')]",
-        "properties" : {
-          "disableTcpStateTracking" : "[parameters('disableTcpStateTracking')]",
-          "enableAcceleratedNetworking" : "[parameters('enableAcceleratedNetworking')]",
-          "enableIPForwarding" : "[parameters('enableIPForwarding')]",
-          "ipConfigurations" : [
-            {
-              "name" : "[parameters('ipConfigName')]",
-              "properties" : {
-                "primary" : true,
-                "privateIPAddress" : "[parameters('privateIPAddress')]",
-                "privateIPAllocationMethod" : "Dynamic",
-                "publicIPAddress" : {
-                  "id" : "[parameters('publicIPId')]"
-                },
-                "subnet" : {
-                  "id" : "[parameters('subnetId')]"
-                }
-              }
-            }
-          ],
-          "networkSecurityGroup" : {
-            "id" : "[parameters('networkSecurityGroupId')]"
-          }
-        }
-      }
-    ]
-  })
+  template_body       = file("${patch_nic_template.json") # External file reference
 
   parameters_content = jsonencode({
-    nicName = {
-      value = each.value.name
-    },
-    publicIPId = {
-      value = data.azurerm_public_ip.manual.id
-    },
-    egressIpId = {
-      value = each.value.ip_configuration[0].public_ip_address_id
-    },
-    subnetId = {
-      value = each.value.ip_configuration[0].subnet_id
-    },
-    ipConfigName = {
-      value = each.value.ip_configuration[0].name
-    },
-    privateIPAddress = {
-      value = each.value.ip_configuration[0].private_ip_address
-    },
-    location = {
-      value = azurerm_resource_group.test.location
-   },
-    tags = {
-      value = try(each.value.tags, {})  # ✅ fixed line
-   },
+    nicName = { value = each.value.name },
+    publicIPId = { value = data.azurerm_public_ip.manual.id },
+    egressIpId = { value = each.value.ip_configuration[0].public_ip_address_id },
+    subnetId = { value = each.value.ip_configuration[0].subnet_id },
+    ipConfigName = { value = each.value.ip_configuration[0].name },
+    privateIPAddress = { value = each.value.ip_configuration[0].private_ip_address },
+    location = { value = azurerm_resource_group.test.location },
+    tags = { value = try(each.value.tags, {}) },
     networkSecurityGroupId = {
       value = try(data.azurerm_network_interface.egress[each.key].network_security_group_id, null)
     },
-    disableTcpStateTracking = {
-      value = false
-    },
-    enableAcceleratedNetworking = {
-      value = false
-    },
-    enableIPForwarding = {
-      value = true
-    }
+    disableTcpStateTracking = { value = false },
+    enableAcceleratedNetworking = { value = false },
+    enableIPForwarding = { value = true }
   })
 }
