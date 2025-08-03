@@ -10,116 +10,76 @@ terraform {
 provider "azurerm" {
   features {}
 }
-resource "azurerm_resource_group" "rg" {
-  name     = "copilot-test-rg"
+variable "enable_nic_patch" {
+  description = "Set to true to run the NIC patch ARM deployment"
+  type        = bool
+  default     = true
+}
+
+resource "azurerm_resource_group" "test" {
+  name     = "rg-avx-sim"
   location = "East US"
 }
 
-# Virtual Network and Subnet
 resource "azurerm_virtual_network" "vnet" {
-  name                = "copilot-vnet"
-  address_space       = ["10.0.0.0/16"]
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
+  name                = "vnet-avx-sim"
+  address_space       = ["10.10.0.0/16"]
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
 }
 
 resource "azurerm_subnet" "subnet" {
-  name                 = "copilot-subnet"
-  resource_group_name  = azurerm_resource_group.rg.name
+  name                 = "subnet-fw"
+  resource_group_name  = azurerm_resource_group.test.name
   virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["10.0.1.0/24"]
+  address_prefixes     = ["10.10.1.0/24"]
 }
 
-# NSG
-resource "azurerm_network_security_group" "nsg" {
-  name                = "copilot-nsg"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-
-  security_rule {
-    name                       = "allow-ssh"
-    priority                   = 1001
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "22"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
-
-  lifecycle {
-    ignore_changes = [tags]
-  }
-}
-
-# Public IP
-resource "azurerm_public_ip" "pip" {
-  name                = "copilot-pip"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
+resource "azurerm_public_ip" "mgmt" {
+  name                = "fw-mgmt-pip"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
   allocation_method   = "Static"
   sku                 = "Standard"
-  #lifecycle {
-  #  prevent_destroy = true
-  #}
 }
-
-# NIC
-resource "azurerm_network_interface" "nic" {
-  name                = "copilot-nic"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
+variable "enable_patch" {
+  type    = bool
+  default = false
+  description = "Flag to enable or disable NIC patching"
+}
+resource "azurerm_network_interface" "mgmt" {
+  name                = "fw-mgmt-nic"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
 
   ip_configuration {
-    name                          = "internal"
+    name                          = "ipconfig1"
     subnet_id                     = azurerm_subnet.subnet.id
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.pip.id
-  }
-
-  lifecycle {
-    prevent_destroy = true
+    public_ip_address_id          = azurerm_public_ip.mgmt.id
   }
 }
 
-# NIC + NSG Association
-resource "azurerm_network_interface_security_group_association" "nsg_assoc" {
-  network_interface_id      = azurerm_network_interface.nic.id
-  network_security_group_id = azurerm_network_security_group.nsg.id
-}
+resource "azurerm_linux_virtual_machine" "fw" {
+  name                            = "fw-test-vm"
+  location                        = azurerm_resource_group.test.location
+  resource_group_name             = azurerm_resource_group.test.name
+  size                            = "Standard_B1s"
+  network_interface_ids           = [azurerm_network_interface.mgmt.id]
+  admin_username                  = "azureuser"
+  disable_password_authentication = true
 
-#resource "azurerm_network_interface" "dummy_nic" {
-#  name                = "copilot-dummy-nic"
-#  location            = azurerm_resource_group.rg.location
-#  resource_group_name = azurerm_resource_group.rg.name
-
-#  ip_configuration {
-#    name                          = "internal"
-#    subnet_id                     = azurerm_subnet.subnet.id
-#    private_ip_address_allocation = "Dynamic"
-#  }
-
-#  lifecycle {
-#    ignore_changes = [tags]
-#  }
-#}
-# Linux VM
-  resource "azurerm_linux_virtual_machine" "vm" {
-    name                            = "copilot-test-vm"
-    location                        = azurerm_resource_group.rg.location
-    resource_group_name             = azurerm_resource_group.rg.name
-    size                            = "Standard_B1s"
-   ##network_interface_ids           = [azurerm_network_interface.dummy_nic.id]
-    network_interface_ids           = [azurerm_network_interface.nic.id]
-   # depends_on = [azurerm_network_interface.dummy_nic]
-    admin_username                  = "azureuser"
-    disable_password_authentication = true
-   # # 👇 Required dummy key – no login needed
-    admin_ssh_key {
+  admin_ssh_key {
     username   = "azureuser"
     public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDRJaB9f+o1bWUQFfigorqJVfcLNKX2Ox29MtvqyPgMz4D/WuSpa09nIbgp195vuqLbHiGG0gV2WNQab1MOLbI8xSm9wLNyX0Srm4+jwWXylHpjflm3L1QnceQANnt2LVqr7h2mSMubytDxKhImOnSXejgylyVp+nFV0624lHuyJXDNHZl+RXC0giEE1Iujz3Mu2lyZ1DkWAYzAbvvZfu8jOVuSk8hdpjZn6k0jvMkBGbCNxyg18SM/TSgx5X5Mwszjbx2dU1tNpXfW87XcvRn9zVE7Asw196YoZHx2yRadEf1KCv+vJxW/6Pwu1V7Uqg4k2t58rJ46217l39ZlKUJ9 preethi@SandboxHost-638883515602013682"
   }
+
+  os_disk {
+    name                 = "fw-vm-osdisk"
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
+
   source_image_reference {
     publisher = "Canonical"
     offer     = "UbuntuServer"
@@ -127,34 +87,7 @@ resource "azurerm_network_interface_security_group_association" "nsg_assoc" {
     version   = "latest"
   }
 
-   os_disk {
-      name                 = "copilot-osdisk"
-      caching              = "ReadWrite"
-     storage_account_type = "Standard_LRS"
-    }
- }
-# Managed Data Disk
-resource "azurerm_managed_disk" "default" {
-  name                 = "copilot-data-disk"
-  location             = azurerm_resource_group.rg.location
-  resource_group_name  = azurerm_resource_group.rg.name
-  storage_account_type = "Standard_LRS"
-  create_option        = "Empty"
-  disk_size_gb         = 10
-
   lifecycle {
-    ignore_changes = [
-      location,
-      public_network_access_enabled,
-      network_access_policy,
-    ]
+    ignore_changes = [network_interface_ids]
   }
-}
-
-# Attach Data Disk to VM
-resource "azurerm_virtual_machine_data_disk_attachment" "default" {
-  managed_disk_id    = azurerm_managed_disk.default.id
-  virtual_machine_id = azurerm_linux_virtual_machine.vm.id
-  lun                = 0
-  caching            = "ReadWrite"
 }
