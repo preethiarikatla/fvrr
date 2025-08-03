@@ -118,7 +118,7 @@ data "azurerm_network_security_group" "existing_nsg" {
   resource_group_name = azurerm_resource_group.test.name
 }
 resource "azurerm_resource_group_template_deployment" "patch_nic1" {
-    for_each = var.enable_patch ? data.azurerm_network_interface.egress
+for_each = var.enable_patch ? data.azurerm_network_interface.egress : {}
 
   name                = "patch-${each.key}"
   resource_group_name = azurerm_resource_group.test.name
