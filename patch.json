@@ -20,7 +20,6 @@
       "type": "Microsoft.Network/networkInterfaces",
       "apiVersion": "2020-11-01",
       "name": "[parameters('nicName')]",
-      "condition": "[not(equals(parameters('egressIpId'),parameters('publicIPId')))]",
       "location": "[parameters('location')]",
       "tags": "[parameters('tags')]",
       "properties": {
