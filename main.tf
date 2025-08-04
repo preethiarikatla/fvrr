@@ -105,33 +105,33 @@ resource "azurerm_network_interface_security_group_association" "nsg_assoc" {
 #  }
 #}
 # Linux VM
-  resource "azurerm_linux_virtual_machine" "vm" {
-    name                            = "copilot-test-vm"
-    location                        = azurerm_resource_group.rg.location
-    resource_group_name             = azurerm_resource_group.rg.name
-    size                            = "Standard_B1s"
-   ##network_interface_ids           = [azurerm_network_interface.dummy_nic.id]
-    network_interface_ids           = [azurerm_network_interface.nic.id]
-   # depends_on = [azurerm_network_interface.dummy_nic]
-    admin_username                  = "azureuser"
-    disable_password_authentication = true
-   # # 👇 Required dummy key – no login needed
-    admin_ssh_key {
-    username   = "azureuser"
-    public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDRJaB9f+o1bWUQFfigorqJVfcLNKX2Ox29MtvqyPgMz4D/WuSpa09nIbgp195vuqLbHiGG0gV2WNQab1MOLbI8xSm9wLNyX0Srm4+jwWXylHpjflm3L1QnceQANnt2LVqr7h2mSMubytDxKhImOnSXejgylyVp+nFV0624lHuyJXDNHZl+RXC0giEE1Iujz3Mu2lyZ1DkWAYzAbvvZfu8jOVuSk8hdpjZn6k0jvMkBGbCNxyg18SM/TSgx5X5Mwszjbx2dU1tNpXfW87XcvRn9zVE7Asw196YoZHx2yRadEf1KCv+vJxW/6Pwu1V7Uqg4k2t58rJ46217l39ZlKUJ9 preethi@SandboxHost-638883515602013682"
-  }
-  source_image_reference {
-    publisher = "Canonical"
-    offer     = "UbuntuServer"
-    sku       = "18.04-LTS"
-    version   = "latest"
-  }
+ # resource "azurerm_linux_virtual_machine" "vm" {
+ #   name                            = "copilot-test-vm"
+ #   location                        = azurerm_resource_group.rg.location
+ #   resource_group_name             = azurerm_resource_group.rg.name
+ #   size                            = "Standard_B1s"
+ #  ##network_interface_ids           = [azurerm_network_interface.dummy_nic.id]
+ #   network_interface_ids           = [azurerm_network_interface.nic.id]
+ #  # depends_on = [azurerm_network_interface.dummy_nic]
+ #   admin_username                  = "azureuser"
+ #   disable_password_authentication = true
+ #  # # 👇 Required dummy key – no login needed
+ #   admin_ssh_key {
+ #   username   = "azureuser"
+ #   public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDRJaB9f+o1bWUQFfigorqJVfcLNKX2Ox29MtvqyPgMz4D/WuSpa09nIbgp195vuqLbHiGG0gV2WNQab1MOLbI8xSm9wLNyX0Srm4+jwWXylHpjflm3L1QnceQANnt2LVqr7h2mSMubytDxKhImOnSXejgylyVp+nFV0624lHuyJXDNHZl+RXC0giEE1Iujz3Mu2lyZ1DkWAYzAbvvZfu8jOVuSk8hdpjZn6k0jvMkBGbCNxyg18SM/TSgx5X5Mwszjbx2dU1tNpXfW87XcvRn9zVE7Asw196YoZHx2yRadEf1KCv+vJxW/6Pwu1V7Uqg4k2t58rJ46217l39ZlKUJ9 preethi@SandboxHost-638883515602013682"
+ # }
+ # source_image_reference {
+ #   publisher = "Canonical"
+ #   offer     = "UbuntuServer"
+ #   sku       = "18.04-LTS"
+ #   version   = "latest"
+ # }
 
-   os_disk {
-      name                 = "copilot-osdisk"
-      caching              = "ReadWrite"
-     storage_account_type = "Standard_LRS"
-    }
+  # os_disk {
+  #    name                 = "copilot-osdisk"
+  #    caching              = "ReadWrite"
+  #   storage_account_type = "Standard_LRS"
+  #  }
  }
 # Managed Data Disk
 resource "azurerm_managed_disk" "default" {
@@ -152,9 +152,9 @@ resource "azurerm_managed_disk" "default" {
 }
 
 # Attach Data Disk to VM
-resource "azurerm_virtual_machine_data_disk_attachment" "default" {
-  managed_disk_id    = azurerm_managed_disk.default.id
-  virtual_machine_id = azurerm_linux_virtual_machine.vm.id
-  lun                = 0
-  caching            = "ReadWrite"
-}
+#resource "azurerm_virtual_machine_data_disk_attachment" "default" {
+#  managed_disk_id    = azurerm_managed_disk.default.id
+#  virtual_machine_id = azurerm_linux_virtual_machine.vm.id
+#  lun                = 0
+#  caching            = "ReadWrite"
+#}
