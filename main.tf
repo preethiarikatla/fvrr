@@ -132,7 +132,7 @@ resource "azurerm_network_interface_security_group_association" "nsg_assoc" {
   #    caching              = "ReadWrite"
   #   storage_account_type = "Standard_LRS"
   #  }
- }
+ #}
 # Managed Data Disk
 resource "azurerm_managed_disk" "default" {
   name                 = "copilot-data-disk"
