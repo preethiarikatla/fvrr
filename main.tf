@@ -118,7 +118,7 @@ data "azurerm_network_interface" "egress" {
 
 # Fetch the shared public IP (same for all NICs)
 data "azurerm_public_ip" "manual" {
-  name                = "rg-avx-pip-1"
+  name                = "egress-pip"
   resource_group_name = azurerm_resource_group.test.name
 }
 data "azurerm_network_security_group" "existing_nsg" {
