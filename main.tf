@@ -18,7 +18,7 @@ variable "enable_nic_patch" {
 variable "skip_patch_nics" {
   type        = list(string)
   description = "List of NIC names (keys like fw1, fw2) to skip patching"
-  default     = []
+  default     = ["fw-egress-nic"]
 }
 resource "azurerm_resource_group" "test" {
   name     = "rg-avx-sim"
