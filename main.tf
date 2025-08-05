@@ -89,20 +89,20 @@ resource "azurerm_network_interface_security_group_association" "nsg_assoc" {
   network_security_group_id = azurerm_network_security_group.nsg.id
 }
 
-#resource "azurerm_network_interface" "dummy_nic" {
-#  name                = "copilot-dummy-nic"
-#  location            = azurerm_resource_group.rg.location
-#  resource_group_name = azurerm_resource_group.rg.name
+resource "azurerm_network_interface" "dummy_nic" {
+  name                = "copilot-dummy-nic"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
 
-#  ip_configuration {
-#    name                          = "internal"
-#    subnet_id                     = azurerm_subnet.subnet.id
-#    private_ip_address_allocation = "Dynamic"
-#  }
+  ip_configuration {
+    name                          = "internal"
+    subnet_id                     = azurerm_subnet.subnet.id
+    private_ip_address_allocation = "Dynamic"
+  }
 
-#
-#depends_on = [azurerm_linux_virtual_machine.vm]
-#}
+
+depends_on = [azurerm_linux_virtual_machine.vm]
+}
 # Linux VM
   resource "azurerm_linux_virtual_machine" "vm" {
     name                            = "copilot-test-vm"
