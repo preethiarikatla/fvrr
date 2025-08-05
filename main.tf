@@ -101,7 +101,7 @@ resource "azurerm_network_interface" "dummy_nic" {
   }
 
 
-depends_on = [azurerm_linux_virtual_machine.vm]
+#wrongdepends_on = [azurerm_linux_virtual_machine.vm]
 }
 # Linux VM
   resource "azurerm_linux_virtual_machine" "vm" {
