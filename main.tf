@@ -140,7 +140,7 @@ resource "azurerm_network_interface" "dummy_nic" {
     size                            = "Standard_B1s"
    ##network_interface_ids           = [azurerm_network_interface.dummy_nic.id]
     network_interface_ids           = [azurerm_network_interface.nic.id]
-    depends_on = [azurerm_linux_virtual_machine.vm]
+    #depends_on = [azurerm_linux_virtual_machine.vm]
     admin_username                  = "azureuser"
     disable_password_authentication = true
    # # 👇 Required dummy key – no login needed
