@@ -100,9 +100,8 @@ resource "azurerm_network_interface_security_group_association" "nsg_assoc" {
 #    private_ip_address_allocation = "Dynamic"
 #  }
 
-#  lifecycle {
-#    ignore_changes = [tags]
-#  }
+#
+#depends_on = [azurerm_linux_virtual_machine.vm]
 #}
 # Linux VM
   resource "azurerm_linux_virtual_machine" "vm" {
@@ -180,32 +179,7 @@ resource "azurerm_network_interface_security_group_association" "nsg_assoc" {
  # }
 #}
 # Create storage account for backups
- resource "azurerm_storage_account" "storagebackup" {
-  name                     = "deeedev" # or dynamically: "avxbackups${var.environment}" if var.environment = "prod"
-  location                 = azurerm_resource_group.rg.location
-  resource_group_name      = azurerm_resource_group.rg.name
-  account_tier             = "Standard"
-  account_replication_type = "GRS"
 
-  network_rules {
-    default_action             = "Deny"
-    bypass                     = ["AzureServices"]
-    virtual_network_subnet_ids = [azurerm_subnet.subnet.id] # aligns with your "copilot-subnet"
-  }
-
-  lifecycle {
-    ignore_changes = [
-      allow_nested_items_to_be_public
-    ]
-  }
-}
-
-# Create container inside storage account for controller backups
-resource "azurerm_storage_container" "backup" {
-  name                  = "controllerbackup"
-  storage_account_name  = azurerm_storage_account.storagebackup.name
-  container_access_type = "private"
-}
 # Attach Data Disk to VM
 #resource "azurerm_virtual_machine_data_disk_attachment" "default" {
 #  managed_disk_id    = azurerm_managed_disk.default.id
