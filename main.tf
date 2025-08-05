@@ -181,7 +181,7 @@ resource "azurerm_network_interface_security_group_association" "nsg_assoc" {
 #}
 # Create storage account for backups
  resource "azurerm_storage_account" "storagebackup" {
-  name                     = "avxbackupsprod" # or dynamically: "avxbackups${var.environment}" if var.environment = "prod"
+  name                     = "deeedev" # or dynamically: "avxbackups${var.environment}" if var.environment = "prod"
   location                 = azurerm_resource_group.rg.location
   resource_group_name      = azurerm_resource_group.rg.name
   account_tier             = "Standard"
