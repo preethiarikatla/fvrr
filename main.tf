@@ -99,10 +99,9 @@ resource "azurerm_network_interface" "dummy_nic" {
     subnet_id                     = azurerm_subnet.subnet.id
     private_ip_address_allocation = "Dynamic"
   }
-
-
+}
 #wrongdepends_on = [azurerm_linux_virtual_machine.vm]
-#}
+
 # Linux VM
 resource "azurerm_linux_virtual_machine" "vm" {
    name                            = "copilot-test-vm"
