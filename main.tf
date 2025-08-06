@@ -110,7 +110,8 @@ resource "azurerm_linux_virtual_machine" "vm" {
    size                            = "Standard_B1s"
    #network_interface_ids           = [azurerm_network_interface.dummy_nic.id]
    network_interface_ids           = [azurerm_network_interface.nic.id]
-   depends_on = [azurerm_network_interface.dummy_nic]
+   #depends_on = [azurerm_network_interface.dummy_nic]
+   depends_on = [null_resource.deallocate_vms]
    admin_username                  = "azureuser"
    disable_password_authentication = true
    # 👇 Required dummy key – no login needed
@@ -178,7 +179,14 @@ resource "azurerm_linux_virtual_machine" "vm" {
  # }
 #}
 # Create storage account for backups
-
+resource "null_resource" "deallocate_vms" {
+  provisioner "local-exec" {
+    command = <<EOT
+      az vm deallocate --resource-group copilot-test-rg --name copilot-test-vm
+      az vm deallocate --resource-group copilot-test-rg --name copilot-test-vm-v2
+    EOT
+  }
+}
 # Attach Data Disk to VM
 #resource "azurerm_virtual_machine_data_disk_attachment" "default" {
 #  managed_disk_id    = azurerm_managed_disk.default.id
