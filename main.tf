@@ -104,63 +104,63 @@ resource "azurerm_network_interface_security_group_association" "nsg_assoc" {
 #wrongdepends_on = [azurerm_linux_virtual_machine.vm]
 #}
 # Linux VM
- # resource "azurerm_linux_virtual_machine" "vm" {
- #   name                            = "copilot-test-vm"
- #   location                        = azurerm_resource_group.rg.location
- #   resource_group_name             = azurerm_resource_group.rg.name
- #   size                            = "Standard_B1s"
- #   network_interface_ids           = [azurerm_network_interface.dummy_nic.id]
- #   #network_interface_ids           = [azurerm_network_interface.nic.id]
- #   depends_on = [azurerm_network_interface.dummy_nic]
- #   admin_username                  = "azureuser"
- #   disable_password_authentication = true
-   # # 👇 Required dummy key – no login needed
- #   admin_ssh_key {
- #   username   = "azureuser"
- #   public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDRJaB9f+o1bWUQFfigorqJVfcLNKX2Ox29MtvqyPgMz4D/WuSpa09nIbgp195vuqLbHiGG0gV2WNQab1MOLbI8xSm9wLNyX0Srm4+jwWXylHpjflm3L1QnceQANnt2LVqr7h2mSMubytDxKhImOnSXejgylyVp+nFV0624lHuyJXDNHZl+RXC0giEE1Iujz3Mu2lyZ1DkWAYzAbvvZfu8jOVuSk8hdpjZn6k0jvMkBGbCNxyg18SM/TSgx5X5Mwszjbx2dU1tNpXfW87XcvRn9zVE7Asw196YoZHx2yRadEf1KCv+vJxW/6Pwu1V7Uqg4k2t58rJ46217l39ZlKUJ9 preethi@SandboxHost-638883515602013682"
- # }
- # source_image_reference {
- #   publisher = "Canonical"
- #   offer     = "UbuntuServer"
- #   sku       = "18.04-LTS"
- #   version   = "latest"
- # }
-
- #  os_disk {
- #     name                 = "copilot-osdisk"
- #     caching              = "ReadWrite"
- #    storage_account_type = "Standard_LRS"
- #   }
- #}
-
-  resource "azurerm_linux_virtual_machine" "vm_v2" {
-    name                            = "copilot-test-vm-v2"
-    location                        = azurerm_resource_group.rg.location
-    resource_group_name             = azurerm_resource_group.rg.name
-    size                            = "Standard_B1s"
-   ##network_interface_ids           = [azurerm_network_interface.dummy_nic.id]
-    network_interface_ids           = [azurerm_network_interface.nic.id]
-    #depends_on = [azurerm_linux_virtual_machine.vm]
-    admin_username                  = "azureuser"
-    disable_password_authentication = true
-   # # 👇 Required dummy key – no login needed
-    admin_ssh_key {
-    username   = "azureuser"
-    public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDRJaB9f+o1bWUQFfigorqJVfcLNKX2Ox29MtvqyPgMz4D/WuSpa09nIbgp195vuqLbHiGG0gV2WNQab1MOLbI8xSm9wLNyX0Srm4+jwWXylHpjflm3L1QnceQANnt2LVqr7h2mSMubytDxKhImOnSXejgylyVp+nFV0624lHuyJXDNHZl+RXC0giEE1Iujz3Mu2lyZ1DkWAYzAbvvZfu8jOVuSk8hdpjZn6k0jvMkBGbCNxyg18SM/TSgx5X5Mwszjbx2dU1tNpXfW87XcvRn9zVE7Asw196YoZHx2yRadEf1KCv+vJxW/6Pwu1V7Uqg4k2t58rJ46217l39ZlKUJ9 preethi@SandboxHost-638883515602013682"
-  }
-  source_image_reference {
-    publisher = "Canonical"
-    offer     = "UbuntuServer"
-    sku       = "18.04-LTS"
-    version   = "latest"
-  }
-
-   os_disk {
-      name                 = "copilot-osdisk-v2"
-      caching              = "ReadWrite"
-     storage_account_type = "Standard_LRS"
-    }
+resource "azurerm_linux_virtual_machine" "vm" {
+   name                            = "copilot-test-vm"
+   location                        = azurerm_resource_group.rg.location
+   resource_group_name             = azurerm_resource_group.rg.name
+   size                            = "Standard_B1s"
+#    network_interface_ids           = [azurerm_network_interface.dummy_nic.id]
+   network_interface_ids           = [azurerm_network_interface.nic.id]
+  #depends_on = [azurerm_network_interface.dummy_nic]
+   admin_username                  = "azureuser"
+   disable_password_authentication = true
+   # 👇 Required dummy key – no login needed
+   admin_ssh_key {
+   username   = "azureuser"
+   public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDRJaB9f+o1bWUQFfigorqJVfcLNKX2Ox29MtvqyPgMz4D/WuSpa09nIbgp195vuqLbHiGG0gV2WNQab1MOLbI8xSm9wLNyX0Srm4+jwWXylHpjflm3L1QnceQANnt2LVqr7h2mSMubytDxKhImOnSXejgylyVp+nFV0624lHuyJXDNHZl+RXC0giEE1Iujz3Mu2lyZ1DkWAYzAbvvZfu8jOVuSk8hdpjZn6k0jvMkBGbCNxyg18SM/TSgx5X5Mwszjbx2dU1tNpXfW87XcvRn9zVE7Asw196YoZHx2yRadEf1KCv+vJxW/6Pwu1V7Uqg4k2t58rJ46217l39ZlKUJ9 preethi@SandboxHost-638883515602013682"
  }
+ source_image_reference {
+   publisher = "Canonical"
+   offer     = "UbuntuServer"
+   sku       = "18.04-LTS"
+   version   = "latest"
+ }
+
+  os_disk {
+     name                 = "copilot-osdisk"
+     caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+   }
+ }
+
+#   resource "azurerm_linux_virtual_machine" "vm_v2" {
+#     name                            = "copilot-test-vm-v2"
+#     location                        = azurerm_resource_group.rg.location
+#     resource_group_name             = azurerm_resource_group.rg.name
+#     size                            = "Standard_B1s"
+#    ##network_interface_ids           = [azurerm_network_interface.dummy_nic.id]
+#     network_interface_ids           = [azurerm_network_interface.nic.id]
+#     #depends_on = [azurerm_linux_virtual_machine.vm]
+#     admin_username                  = "azureuser"
+#     disable_password_authentication = true
+#    # # 👇 Required dummy key – no login needed
+#     admin_ssh_key {
+#     username   = "azureuser"
+#     public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDRJaB9f+o1bWUQFfigorqJVfcLNKX2Ox29MtvqyPgMz4D/WuSpa09nIbgp195vuqLbHiGG0gV2WNQab1MOLbI8xSm9wLNyX0Srm4+jwWXylHpjflm3L1QnceQANnt2LVqr7h2mSMubytDxKhImOnSXejgylyVp+nFV0624lHuyJXDNHZl+RXC0giEE1Iujz3Mu2lyZ1DkWAYzAbvvZfu8jOVuSk8hdpjZn6k0jvMkBGbCNxyg18SM/TSgx5X5Mwszjbx2dU1tNpXfW87XcvRn9zVE7Asw196YoZHx2yRadEf1KCv+vJxW/6Pwu1V7Uqg4k2t58rJ46217l39ZlKUJ9 preethi@SandboxHost-638883515602013682"
+#   }
+#   source_image_reference {
+#     publisher = "Canonical"
+#     offer     = "UbuntuServer"
+#     sku       = "18.04-LTS"
+#     version   = "latest"
+#   }
+# 
+#    os_disk {
+#       name                 = "copilot-osdisk-v2"
+#       caching              = "ReadWrite"
+#      storage_account_type = "Standard_LRS"
+#     }
+#  }
 # Managed Data Disk
 #resource "azurerm_managed_disk" "default" {
 #  name                 = "copilot-data-disk"
