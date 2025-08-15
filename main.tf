@@ -60,9 +60,9 @@ resource "azurerm_public_ip" "pip" {
   resource_group_name = azurerm_resource_group.rg.name
   allocation_method   = "Static"
   sku                 = "Standard"
-  #lifecycle {
-  #  prevent_destroy = true
-  #}
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 # NIC
@@ -120,7 +120,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
 source_image_reference {
   publisher = "Canonical"
   offer     = "UbuntuServer"
-  sku       = "18.04-LTS"
+  sku       = "20.04-LTS"
   version   = "latest"
 }
   os_disk {
@@ -129,6 +129,8 @@ source_image_reference {
     storage_account_type = "Standard_LRS"
    }
  }
+
+
 
 # Managed Data Disk
 resource "azurerm_managed_disk" "default" {
