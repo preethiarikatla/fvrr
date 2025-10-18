@@ -15,4 +15,3 @@ resource "azurerm_resource_group" "rg_test" {
   name     = "rg-test-low-version"
   location = "East US"
 }
-}
