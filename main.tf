@@ -27,28 +27,24 @@ resource "azurerm_resource_group" "rg" {
   location = "East US"
 }
 
-# 2) Harmless RG-scoped ARM deployment via AzAPI (works on v1 and v2)
-#    This just deploys an empty template; it's safe and idempotent.
+# Same no-op deployment, but AzAPI v2 requires body as HCL object (no jsonencode)
 resource "azapi_resource" "noop_deployment" {
   type      = "Microsoft.Resources/deployments@2021-04-01"
   name      = "noop-deployment"
   parent_id = azurerm_resource_group.rg.id
 
-body = {
-  properties = {
-    mode     = "Incremental"
-    template = {
-      "$schema"       = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
-      "contentVersion" = "1.0.0.0"
-      "resources"      = []
-      "outputs"        = {}
-    }
-    parameters = {}
-  }
-}
+  body = {
+    properties = {
+      mode     = "Incremental"
+      template = {
+        "$schema"        = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
+        "contentVersion" = "1.0.0.0"
+        "resources"      = []
+        "outputs"        = {}
+      }
       parameters = {}
     }
-  })
+  }
 }
 
 # Intentionally failing resource (plan passes, apply fails server-side)
