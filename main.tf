@@ -2,11 +2,11 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.115.0"
+      version = ">= 2.50.0"
     }
     azapi = {
       source  = "Azure/azapi"
-      version = "~> 2.4.0"
+      version = "~> 1.13, != 1.13.0
     }
     random = {
       source  = "hashicorp/random"
@@ -27,24 +27,25 @@ resource "azurerm_resource_group" "rg" {
   location = "East US"
 }
 
-# Same no-op deployment, but AzAPI v2 requires body as HCL object (no jsonencode)
+#    This just deploys an empty template; it's safe and idempotent.
 resource "azapi_resource" "noop_deployment" {
   type      = "Microsoft.Resources/deployments@2021-04-01"
   name      = "noop-deployment"
   parent_id = azurerm_resource_group.rg.id
 
-  body = {
+  body = jsonencode({
     properties = {
-      mode     = "Incremental"
-      template = {
-        "$schema"        = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
+      tags = { env = "v2" }
+      mode      = "Incremental"
+      template  = {
+        "$schema"      = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
         "contentVersion" = "1.0.0.0"
         "resources"      = []
         "outputs"        = {}
       }
       parameters = {}
     }
-  }
+  })
 }
 
 # Intentionally failing resource (plan passes, apply fails server-side)
