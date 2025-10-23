@@ -20,9 +20,9 @@ resource "azurerm_resource_group" "rg" {
   location = "East US"
 }
 
-resource "azapi_resource" "rg_tags" {
+resource "azapi_resource" "rg_tags_v2" {
   type      = "Microsoft.Resources/tags@2021-04-01"
-  name      = "default"
+  name      = "default-v2"
   parent_id = azurerm_resource_group.rg.id
   body = jsonencode({
     properties = {
