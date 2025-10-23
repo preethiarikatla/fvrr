@@ -2,11 +2,11 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = ">= 2.50.0" 
+      version = "~> 3.115.0"" 
     }
     azapi = {
       source  = "Azure/azapi"
-      version = "~> 1.13, != 1.13.0"
+      version = "~> 2.4.0"
     }
     random = {
       source  = "hashicorp/random"
@@ -46,4 +46,11 @@ resource "azapi_resource" "noop_deployment" {
       parameters = {}
     }
   })
+}
+
+# Intentionally failing resource (plan passes, apply fails server-side)
+resource "azurerm_role_assignment" "will_fail_on_apply" {
+  scope                = azurerm_resource_group.rg.id
+  role_definition_name = "Reader"
+  principal_id         = "00000000-0000-0000-0000-000000000000" # bogus principal
 }
