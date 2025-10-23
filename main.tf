@@ -35,7 +35,6 @@ resource "azapi_resource" "noop_deployment" {
 
   body = jsonencode({
     properties = {
-      tags = { env = "v2" }
       mode      = "Incremental"
       template  = {
         "$schema"      = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
