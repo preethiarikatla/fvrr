@@ -34,15 +34,18 @@ resource "azapi_resource" "noop_deployment" {
   name      = "noop-deployment"
   parent_id = azurerm_resource_group.rg.id
 
-  body = jsonencode({
-    properties = {
-      mode      = "Incremental"
-      template  = {
-        "$schema"      = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
-        "contentVersion" = "1.0.0.0"
-        "resources"      = []
-        "outputs"        = {}
-      }
+body = {
+  properties = {
+    mode     = "Incremental"
+    template = {
+      "$schema"       = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
+      "contentVersion" = "1.0.0.0"
+      "resources"      = []
+      "outputs"        = {}
+    }
+    parameters = {}
+  }
+}
       parameters = {}
     }
   })
