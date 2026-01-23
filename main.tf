@@ -11,11 +11,13 @@ provider "azurerm" {
   features {}
 }
 
+# MUST MATCH STATE ADDRESS EXACTLY
 moved {
-  from = module.rg.azurerm_resource_group.rg
-  to   = module.rg.azurerm_resource_group.rg_new
+  from = azurerm_resource_group.rg
+  to   = azurerm_resource_group.rg_new
 }
 
+# ONLY NEW RESOURCE EXISTS
 resource "azurerm_resource_group" "rg_new" {
   name     = "pree"
   location = "eastus"
