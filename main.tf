@@ -10,7 +10,13 @@ terraform {
 provider "azurerm" {
   features {}
 }
-resource "azurerm_resource_group" "rg" {
+resource "azurerm_resource_group" "rg_new" {
   name     = "pree"
   location = "eastus"
+}
+terraform {
+  moved {
+    from = module.rg.azurerm_resource_group.rg
+    to   = module.rg.azurerm_resource_group.rg_new
+  }
 }
