@@ -1,10 +1,7 @@
-variable "waf_rule_groups" {
+variable "waf_exclusions" {
   type = list(object({
-    rule_group_name = string
-    rule = list(object({
-      id      = string
-      enabled = bool
-      action  = string
-    }))
+    match_variable = string
+    operator       = string
+    selector       = string
   }))
 }
