@@ -11,15 +11,39 @@ provider "azurerm" {
   features {}
 }
 
-# MUST MATCH STATE ADDRESS EXACTLY
-moved {
-  from = azurerm_resource_group.rg
-  to   = azurerm_resource_group.rg_new
+locals {
+  config = yamldecode(file("${path.module}/values.yaml"))
 }
 
-# ONLY NEW RESOURCE EXISTS
-resource "azurerm_resource_group" "rg_new" {
-  name     = "pree"
+resource "azurerm_resource_group" "rg" {
+  name     = "rg-waf-test"
   location = "eastus"
 }
 
+resource "azurerm_web_application_firewall_policy" "waf" {
+  name                = "test-waf-policy"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+
+  policy_settings {
+    enabled = true
+    mode    = "Prevention"
+  }
+
+  managed_rules {
+    managed_rule_set {
+      type    = "OWASP"
+      version = "3.2"
+    }
+
+    # 🔴 This is where [] vs null matters
+    dynamic "exclusion" {
+      for_each = local.config.waf_exclusions
+      content {
+        match_variable = exclusion.value.match_variable
+        operator       = exclusion.value.operator
+        selector       = exclusion.value.selector
+      }
+    }
+  }
+}
