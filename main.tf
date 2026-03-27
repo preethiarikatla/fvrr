@@ -11,39 +11,68 @@ provider "azurerm" {
   features {}
 }
 
-locals {
-  config = yamldecode(file("${path.module}/values.yaml"))
+provider "azurerm" {
+  features {}
 }
 
 resource "azurerm_resource_group" "rg" {
-  name     = "rg-waf-test"
-  location = "eastus"
+  name     = "rg-host-encryption-test"
+  location = "East US"
 }
 
-resource "azurerm_web_application_firewall_policy" "waf" {
-  name                = "test-waf-policy"
+resource "azurerm_virtual_network" "vnet" {
+  name                = "vnet-test"
+  address_space       = ["10.0.0.0/16"]
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+}
+
+resource "azurerm_subnet" "subnet" {
+  name                 = "subnet-test"
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = ["10.0.1.0/24"]
+}
+
+resource "azurerm_network_interface" "nic" {
+  name                = "nic-test"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  ip_configuration {
+    name                          = "internal"
+    subnet_id                     = azurerm_subnet.subnet.id
+    private_ip_address_allocation = "Dynamic"
+  }
+}
+
+resource "azurerm_linux_virtual_machine" "vm" {
+  name                = "vm-test"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
+  size                = "Standard_D2s_v3"   # 👈 change this later
 
-  policy_settings {
-    enabled = true
-    mode    = "Prevention"
+  admin_username = "azureuser"
+  admin_password = "Password1234!"
+
+  disable_password_authentication = false
+
+  network_interface_ids = [
+    azurerm_network_interface.nic.id,
+  ]
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
   }
 
-  managed_rules {
-    managed_rule_set {
-      type    = "OWASP"
-      version = "3.2"
-    }
-
-    # 🔴 This is where [] vs null matters
-    dynamic "exclusion" {
-      for_each = local.config.waf_exclusions
-      content {
-        match_variable = exclusion.value.match_variable
-        operator       = exclusion.value.operator
-        selector       = exclusion.value.selector
-      }
-    }
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "0001-com-ubuntu-server-focal"
+    sku       = "20_04-lts"
+    version   = "latest"
   }
+
+  # 🔥 Host-level encryption
+  encryption_at_host_enabled = true
 }
