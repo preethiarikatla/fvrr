@@ -11,10 +11,6 @@ provider "azurerm" {
   features {}
 }
 
-provider "azurerm" {
-  features {}
-}
-
 resource "azurerm_resource_group" "rg" {
   name     = "rg-host-encryption-test"
   location = "East US"
