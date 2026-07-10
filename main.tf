@@ -11,15 +11,15 @@ provider "azurerm" {
   features {}
 }
 
-# Change this to 1 or 2
-variable "vng_count" {
+# Change this value to 1 or 2
+variable "gateway_count" {
   description = "Number of ExpressRoute VNGs to create"
   type        = number
   default     = 1
 
   validation {
-    condition     = contains([1, 2], var.vng_count)
-    error_message = "vng_count must be either 1 or 2."
+    condition     = contains([1, 2], var.gateway_count)
+    error_message = "gateway_count must be either 1 or 2."
   }
 }
 
@@ -29,7 +29,7 @@ resource "azurerm_resource_group" "rg" {
 }
 
 resource "azurerm_virtual_network" "vnet" {
-  count = var.vng_count
+  count = var.gateway_count
 
   name                = "vnet-er-test-${count.index + 1}"
   location            = azurerm_resource_group.rg.location
@@ -41,7 +41,7 @@ resource "azurerm_virtual_network" "vnet" {
 }
 
 resource "azurerm_subnet" "gateway" {
-  count = var.vng_count
+  count = var.gateway_count
 
   name                 = "GatewaySubnet"
   resource_group_name  = azurerm_resource_group.rg.name
@@ -52,19 +52,33 @@ resource "azurerm_subnet" "gateway" {
   ]
 }
 
+resource "azurerm_public_ip" "vng_pip" {
+  count = var.gateway_count
+
+  name                = "pip-er-vng-${count.index + 1}"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  allocation_method = "Static"
+  sku               = "Standard"
+}
+
 resource "azurerm_virtual_network_gateway" "er_vng" {
-  count = var.vng_count
+  count = var.gateway_count
 
   name                = "vng-er-test-${count.index + 1}"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
-  type = "ExpressRoute"
-  sku  = "UltraPerformance"
+  type     = "ExpressRoute"
+  vpn_type = "RouteBased"
+  sku      = "UltraPerformance"
 
   ip_configuration {
     name                          = "vnetGatewayConfig"
     private_ip_address_allocation = "Dynamic"
     subnet_id                     = azurerm_subnet.gateway[count.index].id
+
+    public_ip_address_id = azurerm_public_ip.vng_pip[count.index].id
   }
 }
