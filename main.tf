@@ -30,28 +30,16 @@ resource "azurerm_subnet" "gateway" {
   address_prefixes     = ["10.0.255.0/27"]
 }
 
-resource "azurerm_public_ip" "vng_pip" {
-  name                = "pip-er-test"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-
-  allocation_method = "Static"
-  sku               = "Standard"
-}
-
 resource "azurerm_virtual_network_gateway" "er_vng" {
   name                = "vng-er-test"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
-  type     = "ExpressRoute"
-  vpn_type = "RouteBased"
-
-  sku = "UltraPerformance"
+  type = "ExpressRoute"
+  sku  = "UltraPerformance"
 
   ip_configuration {
-    name                          = "default"
-    public_ip_address_id          = azurerm_public_ip.vng_pip.id
+    name                          = "vnetGatewayConfig"
     private_ip_address_allocation = "Dynamic"
     subnet_id                     = azurerm_subnet.gateway.id
   }
