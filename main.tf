@@ -10,65 +10,61 @@ terraform {
 provider "azurerm" {
   features {}
 }
+terraform {
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = ">= 2.50.0"
+    }
+  }
+}
+
+provider "azurerm" {
+  features {}
+}
 
 resource "azurerm_resource_group" "rg" {
-  name     = "rg-host-encryption-test"
+  name     = "rg-er-test"
   location = "East US"
 }
 
 resource "azurerm_virtual_network" "vnet" {
-  name                = "vnet-test"
-  address_space       = ["10.0.0.0/16"]
+  name                = "vnet-er-test"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
+  address_space       = ["10.0.0.0/16"]
 }
 
-resource "azurerm_subnet" "subnet" {
-  name                 = "subnet-test"
+resource "azurerm_subnet" "gateway" {
+  name                 = "GatewaySubnet"
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["10.0.1.0/24"]
+  address_prefixes     = ["10.0.255.0/27"]
 }
 
-resource "azurerm_network_interface" "nic" {
-  name                = "nic-test"
+resource "azurerm_public_ip" "vng_pip" {
+  name                = "pip-er-test"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
+
+  allocation_method = "Static"
+  sku               = "Standard"
+}
+
+resource "azurerm_virtual_network_gateway" "er_vng" {
+  name                = "vng-er-test"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  type     = "ExpressRoute"
+  vpn_type = "RouteBased"
+
+  sku = "UltraPerformance"
 
   ip_configuration {
-    name                          = "internal"
-    subnet_id                     = azurerm_subnet.subnet.id
+    name                          = "default"
+    public_ip_address_id          = azurerm_public_ip.vng_pip.id
     private_ip_address_allocation = "Dynamic"
+    subnet_id                     = azurerm_subnet.gateway.id
   }
-}
-
-resource "azurerm_linux_virtual_machine" "vm" {
-  name                = "vm-test"
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = azurerm_resource_group.rg.location
-  size                = "Standard_D2s_v3"   # 👈 change this later
-
-  admin_username = "azureuser"
-  admin_password = "Password1234!"
-
-  disable_password_authentication = false
-
-  network_interface_ids = [
-    azurerm_network_interface.nic.id,
-  ]
-
-  os_disk {
-    caching              = "ReadWrite"
-    storage_account_type = "Standard_LRS"
-  }
-
-  source_image_reference {
-    publisher = "Canonical"
-    offer     = "0001-com-ubuntu-server-focal"
-    sku       = "20_04-lts"
-    version   = "latest"
-  }
-
-  # 🔥 Host-level encryption
-  encryption_at_host_enabled = true
 }
