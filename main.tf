@@ -51,3 +51,19 @@ resource "azurerm_subnet" "gateway" {
     count.index == 0 ? "10.0.255.0/27" : "10.1.255.0/27"
   ]
 }
+resource "azurerm_virtual_network_gateway" "er_vng" {
+  count = var.gateway_count
+
+  name                = "vng-er-test-${count.index + 1}"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  type     = "ExpressRoute"
+  vpn_type = "RouteBased"
+  sku      = "UltraPerformance"
+
+  ip_configuration {
+    name                          = "vnetGatewayConfig"
+    subnet_id                     = azurerm_subnet.gateway[count.index].id
+  }
+}
