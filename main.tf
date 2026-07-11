@@ -69,7 +69,7 @@ resource "azurerm_virtual_network_gateway" "er_vng" {
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
-  type     = "ExpressRoute"
+  type     = "Vpn"
   sku      = "UltraPerformance"
 
   ip_configuration {
