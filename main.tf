@@ -70,7 +70,7 @@ resource "azurerm_virtual_network_gateway" "er_vng" {
   resource_group_name = azurerm_resource_group.rg.name
 
   type     = "Vpn"
-  sku      = "UltraPerformance"
+  sku      = "VpnGw1AZ"
 
   ip_configuration {
     subnet_id                     = azurerm_subnet.gateway[count.index].id
