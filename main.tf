@@ -73,7 +73,6 @@ resource "azurerm_virtual_network_gateway" "er_vng" {
   sku      = "UltraPerformance"
 
   ip_configuration {
-    name                          = "vnetGatewayConfig"
     subnet_id                     = azurerm_subnet.gateway[count.index].id
     public_ip_address_id          = azurerm_public_ip.vng_pip[count.index].id
   }
