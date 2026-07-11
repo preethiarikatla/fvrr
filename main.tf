@@ -55,13 +55,16 @@ resource "azurerm_subnet" "gateway" {
 resource "azurerm_public_ip" "vng_pip" {
   count = var.gateway_count
 
-  name                = "pip-er-test-${count.index + 1}"
+  name                = "pip-vng-test-${count.index + 1}"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
   allocation_method = "Static"
   sku               = "Standard"
+
+  zones = ["1", "2", "3"]
 }
+
 resource "azurerm_virtual_network_gateway" "er_vng" {
   count = var.gateway_count
 
@@ -70,10 +73,13 @@ resource "azurerm_virtual_network_gateway" "er_vng" {
   resource_group_name = azurerm_resource_group.rg.name
 
   type     = "Vpn"
+  vpn_type = "RouteBased"
   sku      = "VpnGw1AZ"
 
   ip_configuration {
+    name                          = "vnetGatewayConfig"
     subnet_id                     = azurerm_subnet.gateway[count.index].id
     public_ip_address_id          = azurerm_public_ip.vng_pip[count.index].id
+    private_ip_address_allocation = "Dynamic"
   }
 }
